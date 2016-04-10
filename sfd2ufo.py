@@ -43,12 +43,12 @@ class SFDFont(Font):
 
     def _build_glyphs(self):
         for sfdglyph in self._sfd.glyphs():
-            ufoglyph = self._ufo.newGlyph(sfdglyph.name)
-            ufopen = ufoglyph.getPen()
-            ufoglyph.width = sfdglyph.width
+            glyph = self._ufo.newGlyph(sfdglyph.name)
+            pen = glyph.getPen()
+            glyph.width = sfdglyph.width
             if sfdglyph.unicode > 0:
-                ufoglyph.unicode = sfdglyph.unicode
-            sfdglyph.draw(ufopen)
+                glyph.unicode = sfdglyph.unicode
+            sfdglyph.draw(pen)
 
 if __name__ == "__main__":
     import sys
