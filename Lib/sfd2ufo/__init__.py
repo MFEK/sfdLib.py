@@ -49,7 +49,8 @@ class SFDFont(Font):
         info.unitsPerEm = self._sfd.em
         info.ascender = self._sfd.ascent
         info.descender = -self._sfd.descent
-        info.italicAngle = self._sfd.italicangle
+        if self._sfd.italicangle:
+            info.italicAngle = self._sfd.italicangle
         if self._sfd.capHeight > 0:
             info.capHeight = self._sfd.capHeight
         if self._sfd.xHeight > 0:
@@ -111,8 +112,7 @@ class SFDFont(Font):
         # PostScript
         info.postscriptFontName = self._sfd.fontname
         info.postscriptFullName = self._sfd.fullname
-        if self._sfd.italicangle:
-            info.postscriptSlantAngle = self._sfd.italicangle
+        info.postscriptSlantAngle = info.italicAngle
         info.postscriptWeightName = self._sfd.weight
         if self._sfd.uniqueid:
             info.postscriptUniqueID = self._sfd.uniqueid
