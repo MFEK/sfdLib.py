@@ -9,9 +9,9 @@ class SFDFont(Font):
         self._ufo = Font()
         self._layerMap = {}
 
-        self._build_info()
-        self._build_layers()
-        self._build_glyphs()
+        self._buildInfo()
+        self._buildLayers()
+        self._buildGlyphs()
 
     def __del__(self):
         self._sfd.close()
@@ -19,7 +19,7 @@ class SFDFont(Font):
     def ufo(self):
         return self._ufo
 
-    def _build_info(self):
+    def _buildInfo(self):
         info = self._ufo.info
         info.familyName = self._sfd.familyname
         #info.styleName = self._sfd
@@ -47,7 +47,7 @@ class SFDFont(Font):
             info.xHeight = self._sfd.xHeight
         info.note = self._sfd.comment
 
-    def _build_layers(self):
+    def _buildLayers(self):
         for i in range(self._sfd.layer_cnt):
             name = self._sfd.layers[i].name
             if i == self._sfd.activeLayer:
@@ -55,7 +55,7 @@ class SFDFont(Font):
             else:
                 self._layerMap[name] = self._ufo.newLayer(name)
 
-    def _build_glyphs(self):
+    def _buildGlyphs(self):
         for sfdGlyph in self._sfd.glyphs():
             for sfdLayerName in sfdGlyph.layers:
                 sfdLayer = sfdGlyph.layers[sfdLayerName]
