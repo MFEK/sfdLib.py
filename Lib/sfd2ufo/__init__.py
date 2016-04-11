@@ -17,6 +17,11 @@ class SFDFont(Font):
     def __del__(self):
         self._sfd.close()
 
+    def _setFromSfntName(self, info, ufoName, sfdName):
+        for name in self._sfd.sfnt_names:
+            if name[0] == "English (US)" and name[1] == sfdName:
+                setattr(info, ufoName, name[2])
+
     def _buildInfo(self):
         info = self.info
 
@@ -45,6 +50,23 @@ class SFDFont(Font):
         if self._sfd.xHeight > 0:
             info.xHeight = self._sfd.xHeight
         info.note = self._sfd.comment
+
+        # OpenType names
+        self._setFromSfntName(info, "openTypeNameDesigner", "Designer")
+        self._setFromSfntName(info, "openTypeNameDesignerURL", "Designer URL")
+        self._setFromSfntName(info, "openTypeNameManufacturer", "Manufacturer")
+        self._setFromSfntName(info, "openTypeNameManufacturerURL", "Vendor URL")
+        self._setFromSfntName(info, "openTypeNameLicense", "License")
+        self._setFromSfntName(info, "openTypeNameLicenseURL", "License URL")
+        self._setFromSfntName(info, "openTypeNameVersion", "Version")
+        self._setFromSfntName(info, "openTypeNameUniqueID", "UniqueID")
+        self._setFromSfntName(info, "openTypeNameDescription", "Descriptor")
+        self._setFromSfntName(info, "openTypeNamePreferredFamilyName", "Preferred Family")
+        self._setFromSfntName(info, "openTypeNamePreferredSubfamilyName", "Preferred Styles")
+        self._setFromSfntName(info, "openTypeNameCompatibleFullName", "Compatible Full")
+        self._setFromSfntName(info, "openTypeNameSampleText", "Sample Text")
+        self._setFromSfntName(info, "openTypeNameWWSFamilyName", "WWS Family")
+        self._setFromSfntName(info, "openTypeNameWWSSubfamilyName", "WWS Subfamily")
 
         # PostScript
         info.postscriptFontName = self._sfd.fontname
