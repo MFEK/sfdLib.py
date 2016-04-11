@@ -57,12 +57,15 @@ class SFDFont(Font):
         for sfdGlyph in self._sfd.glyphs():
             for sfdLayerName in sfdGlyph.layers:
                 sfdLayer = sfdGlyph.layers[sfdLayerName]
+                sfdLayerRefs = sfdGlyph.layerrefs[sfdLayerName]
                 layer = self._layerMap[sfdLayerName]
+                if not sfdLayer and not sfdLayerRefs and layer != self.layers.defaultLayer:
+                    continue
                 glyph = layer.newGlyph(sfdGlyph.name)
                 pen = glyph.getPen()
                 glyph.width = sfdGlyph.width
                 sfdLayer.draw(pen)
-                for ref in sfdGlyph.layerrefs[sfdLayerName]:
+                for ref in sfdLayerRefs:
                     pen.addComponent(ref[0], ref[1])
 
             if sfdGlyph.unicode > 0:
