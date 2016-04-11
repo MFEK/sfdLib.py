@@ -21,12 +21,16 @@ class SFDFont(Font):
         info = self._ufo.info
         info.familyName = self._sfd.familyname
         #info.styleName = self._sfd
+        versionMajor = ""
+        versionMinor = ""
         if "." in self._sfd.version:
-            info.versionMajor = int(self._sfd.version.split(".")[0])
-            info.versionMinor = int(self._sfd.version.split(".")[1])
+            versionMajor, versionMinor = self._sfd.version.split(".")
         else:
-            info.versionMajor = int(self._sfd.version)
-            info.versionMinor = 0
+            versionMajor = self._sfd.version
+        if versionMajor.isdigit():
+            info.versionMajor = int(versionMajor)
+        if versionMinor.isdigit():
+            info.versionMinor = int(versionMinor)
         #info.year = self._sfd
 
         info.copyright = self._sfd.copyright
