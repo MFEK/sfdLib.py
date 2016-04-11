@@ -22,6 +22,11 @@ class SFDFont(Font):
             if name[0] == "English (US)" and name[1] == sfdName:
                 setattr(info, ufoName, name[2])
 
+    def _setFromFont(self, info, ufoName, sfdName):
+        value = getattr(self._sfd, sfdName)
+        if value:
+            setattr(info, ufoName, value)
+
     def _buildInfo(self):
         info = self.info
 
@@ -50,6 +55,41 @@ class SFDFont(Font):
         if self._sfd.xHeight > 0:
             info.xHeight = self._sfd.xHeight
         info.note = self._sfd.comment
+
+        # make sure we get absolute values for those
+        for attr in ("os2_typoascent", "os2_typodescent", "os2_winascent", "os2_windescent", "hhea_ascent", "hhea_descent"):
+            setattr(self._sfd, "%s_add" % attr, False)
+
+        # hhea
+        self._setFromFont(info, "openTypeHheaAscender", "hhea_ascent")
+        self._setFromFont(info, "openTypeHheaDescender", "hhea_descent")
+        self._setFromFont(info, "openTypeHheaLineGap", "hhea_linegap")
+
+        # OS/2
+        self._setFromFont(info, "openTypeOS2WidthClass", "os2_width")
+        self._setFromFont(info, "openTypeOS2WeightClass", "os2_weight")
+       #self._setFromFont(info, "openTypeOS2Selection", "")
+        self._setFromFont(info, "openTypeOS2VendorID", "os2_vendor")
+        self._setFromFont(info, "openTypeOS2Panose", "os2_panose")
+        self._setFromFont(info, "openTypeOS2FamilyClass", "os2_family_class")
+       #self._setFromFont(info, "openTypeOS2UnicodeRanges", "os2_unicoderanges")
+       #self._setFromFont(info, "openTypeOS2CodePageRanges", "os2_codepages")
+        self._setFromFont(info, "openTypeOS2TypoAscender", "os2_typoascent")
+        self._setFromFont(info, "openTypeOS2TypoDescender", "os2_typodescent")
+        self._setFromFont(info, "openTypeOS2TypoLineGap", "os2_typolinegap")
+        self._setFromFont(info, "openTypeOS2WinAscent", "os2_winascent")
+        self._setFromFont(info, "openTypeOS2WinDescent", "os2_windescent")
+       #self._setFromFont(info, "openTypeOS2Type", "os2_fstype")
+        self._setFromFont(info, "openTypeOS2SubscriptXSize", "os2_subxsize")
+        self._setFromFont(info, "openTypeOS2SubscriptYSize", "os2_subysize")
+        self._setFromFont(info, "openTypeOS2SubscriptXOffset", "os2_subxoff")
+        self._setFromFont(info, "openTypeOS2SubscriptYOffset", "os2_subyoff")
+        self._setFromFont(info, "openTypeOS2SuperscriptXSize", "os2_supxsize")
+        self._setFromFont(info, "openTypeOS2SuperscriptYSize", "os2_supysize")
+        self._setFromFont(info, "openTypeOS2SuperscriptXOffset", "os2_supxoff")
+        self._setFromFont(info, "openTypeOS2SuperscriptYOffset", "os2_supyoff")
+        self._setFromFont(info, "openTypeOS2StrikeoutSize", "os2_strikeysize")
+        self._setFromFont(info, "openTypeOS2StrikeoutPosition", "os2_strikeypos")
 
         # OpenType names
         self._setFromSfntName(info, "openTypeNameDesigner", "Designer")
