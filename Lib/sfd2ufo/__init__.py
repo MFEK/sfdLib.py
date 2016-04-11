@@ -144,8 +144,7 @@ class SFDFont(Font):
 
             if sfdGlyph.unicode > 0:
                 glyph = self[sfdGlyph.name]
-                glyph.unicode = sfdGlyph.unicode
-                glyph.unicodes.append(glyph.unicode)
+                glyph.unicodes = [sfdGlyph.unicode]
                 if sfdGlyph.altuni:
                     for altuni in sfdGlyph.altuni:
                         # TODO: what about variation selectors?
