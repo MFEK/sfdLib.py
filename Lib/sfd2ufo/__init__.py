@@ -5,8 +5,9 @@ import fontforge
 class SFDFont(Font):
 
     def __init__(self, path):
+        super(SFDFont, self).__init__()
+
         self._sfd = fontforge.open(path)
-        self._ufo = Font()
         self._layerMap = {}
 
         self._buildInfo()
@@ -16,11 +17,8 @@ class SFDFont(Font):
     def __del__(self):
         self._sfd.close()
 
-    def ufo(self):
-        return self._ufo
-
     def _buildInfo(self):
-        info = self._ufo.info
+        info = self.info
         info.familyName = self._sfd.familyname
         #info.styleName = self._sfd
         versionMajor = ""
@@ -51,9 +49,9 @@ class SFDFont(Font):
         for i in range(self._sfd.layer_cnt):
             name = self._sfd.layers[i].name
             if i == self._sfd.activeLayer:
-                self._layerMap[name] = self._ufo.layers.defaultLayer
+                self._layerMap[name] = self.layers.defaultLayer
             else:
-                self._layerMap[name] = self._ufo.newLayer(name)
+                self._layerMap[name] = self.newLayer(name)
 
     def _buildGlyphs(self):
         for sfdGlyph in self._sfd.glyphs():
@@ -68,7 +66,7 @@ class SFDFont(Font):
                     pen.addComponent(ref[0], ref[1])
 
             if sfdGlyph.unicode > 0:
-                glyph = self._ufo[sfdGlyph.name]
+                glyph = self[sfdGlyph.name]
                 glyph.unicode = sfdGlyph.unicode
                 glyph.unicodes.append(glyph.unicode)
                 if sfdGlyph.altuni:
@@ -77,8 +75,3 @@ class SFDFont(Font):
                         if altuni[1] == 0xfe00:
                             glyph.unicodes.append(altuni[0])
 
-if __name__ == "__main__":
-    import sys
-    font = SFDFont(sys.argv[1])
-    ufo = font.ufo()
-    ufo.save(sys.argv[2])
