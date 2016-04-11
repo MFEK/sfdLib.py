@@ -19,6 +19,7 @@ class SFDFont(Font):
 
     def _buildInfo(self):
         info = self.info
+
         info.familyName = self._sfd.familyname
         #info.styleName = self._sfd
         versionMajor = ""
@@ -44,6 +45,17 @@ class SFDFont(Font):
         if self._sfd.xHeight > 0:
             info.xHeight = self._sfd.xHeight
         info.note = self._sfd.comment
+
+        # PostScript
+        info.postscriptFontName = self._sfd.fontname
+        info.postscriptFullName = self._sfd.fullname
+        if self._sfd.italicangle:
+            info.postscriptSlantAngle = self._sfd.italicangle
+        info.postscriptWeightName = self._sfd.weight
+        if self._sfd.uniqueid:
+            info.postscriptUniqueID = self._sfd.uniqueid
+        info.postscriptUnderlineThickness = self._sfd.uwidth
+        info.postscriptUnderlinePosition = self._sfd.upos
 
     def _buildLayers(self):
         for i in range(self._sfd.layer_cnt):
