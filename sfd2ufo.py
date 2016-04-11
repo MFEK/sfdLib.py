@@ -52,6 +52,12 @@ class SFDFont(Font):
             glyph.width = sfdglyph.width
             if sfdglyph.unicode > 0:
                 glyph.unicode = sfdglyph.unicode
+                glyph.unicodes.append(glyph.unicode)
+                if sfdglyph.altuni:
+                    for altuni in sfdglyph.altuni:
+                        # TODO: what about variation selectors?
+                        if altuni[1] == 0xfe00:
+                            glyph.unicodes.append(altuni[0])
             sfdglyph.draw(pen)
 
 if __name__ == "__main__":
