@@ -7,8 +7,10 @@ class SFDFont(Font):
     def __init__(self, path):
         self._sfd = fontforge.open(path)
         self._ufo = Font()
+        self._layerMap = {}
 
         self._build_info()
+        self._build_layers()
         self._build_glyphs()
 
     def __del__(self):
@@ -45,20 +47,35 @@ class SFDFont(Font):
             info.xHeight = self._sfd.xHeight
         info.note = self._sfd.comment
 
+    def _build_layers(self):
+        for i in range(self._sfd.layer_cnt):
+            name = self._sfd.layers[i].name
+            if i == self._sfd.activeLayer:
+                self._layerMap[name] = self._ufo.layers.defaultLayer
+            else:
+                self._layerMap[name] = self._ufo.newLayer(name)
+
     def _build_glyphs(self):
-        for sfdglyph in self._sfd.glyphs():
-            glyph = self._ufo.newGlyph(sfdglyph.name)
-            pen = glyph.getPen()
-            glyph.width = sfdglyph.width
-            if sfdglyph.unicode > 0:
-                glyph.unicode = sfdglyph.unicode
+        for sfdGlyph in self._sfd.glyphs():
+            for sfdLayerName in sfdGlyph.layers:
+                sfdLayer = sfdGlyph.layers[sfdLayerName]
+                layer = self._layerMap[sfdLayerName]
+                glyph = layer.newGlyph(sfdGlyph.name)
+                pen = glyph.getPen()
+                glyph.width = sfdGlyph.width
+                sfdLayer.draw(pen)
+                for ref in sfdGlyph.layerrefs[sfdLayerName]:
+                    pen.addComponent(ref[0], ref[1])
+
+            if sfdGlyph.unicode > 0:
+                glyph = self._ufo[sfdGlyph.name]
+                glyph.unicode = sfdGlyph.unicode
                 glyph.unicodes.append(glyph.unicode)
-                if sfdglyph.altuni:
-                    for altuni in sfdglyph.altuni:
+                if sfdGlyph.altuni:
+                    for altuni in sfdGlyph.altuni:
                         # TODO: what about variation selectors?
                         if altuni[1] == 0xfe00:
                             glyph.unicodes.append(altuni[0])
-            sfdglyph.draw(pen)
 
 if __name__ == "__main__":
     import sys
