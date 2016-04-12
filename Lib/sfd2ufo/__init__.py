@@ -147,6 +147,8 @@ class SFDFont(Font):
                     b = ((sfdGlyph.color >> 16) & 255) / 255.
                     a = 1.0
                     glyph.markColor = (r, g, b, a)
+                if sfdGlyph.glyphclass != "automatic":
+                    glyph.lib["org.fontforge.glyphclass"] = sfdGlyph.glyphclass
 
             if sfdGlyph.unicode > 0:
                 glyph = self[sfdGlyph.name]
