@@ -141,6 +141,12 @@ class SFDFont(Font):
                 sfdLayer.draw(pen)
                 for ref in sfdLayerRefs:
                     pen.addComponent(ref[0], ref[1])
+                if sfdGlyph.color >= 0:
+                    r = (sfdGlyph.color & 255) / 255.
+                    g = ((sfdGlyph.color >> 8) & 255) / 255.
+                    b = ((sfdGlyph.color >> 16) & 255) / 255.
+                    a = 1.0
+                    glyph.markColor = (r, g, b, a)
 
             if sfdGlyph.unicode > 0:
                 glyph = self[sfdGlyph.name]
