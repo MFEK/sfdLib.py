@@ -41,7 +41,6 @@ class SFDFont(Font):
             info.versionMajor = int(versionMajor)
         if versionMinor.isdigit():
             info.versionMinor = int(versionMinor)
-        #info.year = self._sfd
 
         info.copyright = self._sfd.copyright
         self._setFromSfntName(info, "trademark", "Trademark")
