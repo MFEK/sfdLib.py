@@ -30,7 +30,7 @@ class SFDFont(Font):
         info = self.info
 
         info.familyName = self._sfd.familyname
-        #info.styleName = self._sfd
+        self._setFromSfntName(info, "styleName", "SubFamily")
         versionMajor = ""
         versionMinor = ""
         if "." in self._sfd.version:
