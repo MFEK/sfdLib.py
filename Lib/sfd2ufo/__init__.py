@@ -16,21 +16,21 @@ class SFDFont(Font):
     def __del__(self):
         self._sfd.close()
 
-    def _setFromSfntName(self, info, ufoName, sfdName):
+    def _setFromSfntName(self, ufoName, sfdName):
         for name in self._sfd.sfnt_names:
             if name[0] == "English (US)" and name[1] == sfdName:
-                setattr(info, ufoName, name[2])
+                setattr(self.info, ufoName, name[2])
 
-    def _setFromFont(self, info, ufoName, sfdName):
+    def _setFromFont(self, ufoName, sfdName):
         value = getattr(self._sfd, sfdName)
         if value:
-            setattr(info, ufoName, value)
+            setattr(self.info, ufoName, value)
 
     def _buildInfo(self):
         info = self.info
 
-        self._setFromFont(info, "familyName", "familyname")
-        self._setFromSfntName(info, "styleName", "SubFamily")
+        self._setFromFont("familyName", "familyname")
+        self._setFromSfntName("styleName", "SubFamily")
         versionMajor = ""
         versionMinor = ""
         if "." in self._sfd.version:
@@ -42,80 +42,80 @@ class SFDFont(Font):
         if versionMinor.isdigit():
             info.versionMinor = int(versionMinor)
 
-        self._setFromFont(info, "copyright", "copyright")
-        self._setFromSfntName(info, "trademark", "Trademark")
-        self._setFromFont(info, "unitsPerEm", "em")
-        self._setFromFont(info, "ascender", "ascent")
-        self._setFromFont(info, "descender", "descent")
+        self._setFromFont("copyright", "copyright")
+        self._setFromSfntName("trademark", "Trademark")
+        self._setFromFont("unitsPerEm", "em")
+        self._setFromFont("ascender", "ascent")
+        self._setFromFont("descender", "descent")
         if info.descender:
             info.descender = -info.descender
-        self._setFromFont(info, "italicAngle", "italicangle")
+        self._setFromFont("italicAngle", "italicangle")
         if self._sfd.capHeight > 0:
-            self._setFromFont(info, "capHeight", "capHeight")
+            self._setFromFont("capHeight", "capHeight")
         if self._sfd.xHeight > 0:
-            self._setFromFont(info, "xHeight", "xHeight")
-        self._setFromFont(info, "note", "comment")
+            self._setFromFont("xHeight", "xHeight")
+        self._setFromFont("note", "comment")
 
         # make sure we get absolute values for those
         for attr in ("os2_typoascent", "os2_typodescent", "os2_winascent", "os2_windescent", "hhea_ascent", "hhea_descent"):
             setattr(self._sfd, "%s_add" % attr, False)
 
         # hhea
-        self._setFromFont(info, "openTypeHheaAscender", "hhea_ascent")
-        self._setFromFont(info, "openTypeHheaDescender", "hhea_descent")
-        self._setFromFont(info, "openTypeHheaLineGap", "hhea_linegap")
+        self._setFromFont("openTypeHheaAscender", "hhea_ascent")
+        self._setFromFont("openTypeHheaDescender", "hhea_descent")
+        self._setFromFont("openTypeHheaLineGap", "hhea_linegap")
 
         # OS/2
-        self._setFromFont(info, "openTypeOS2WidthClass", "os2_width")
-        self._setFromFont(info, "openTypeOS2WeightClass", "os2_weight")
-       #self._setFromFont(info, "openTypeOS2Selection", "")
-        self._setFromFont(info, "openTypeOS2VendorID", "os2_vendor")
-        self._setFromFont(info, "openTypeOS2Panose", "os2_panose")
-        self._setFromFont(info, "openTypeOS2FamilyClass", "os2_family_class")
-       #self._setFromFont(info, "openTypeOS2UnicodeRanges", "os2_unicoderanges")
-       #self._setFromFont(info, "openTypeOS2CodePageRanges", "os2_codepages")
-        self._setFromFont(info, "openTypeOS2TypoAscender", "os2_typoascent")
-        self._setFromFont(info, "openTypeOS2TypoDescender", "os2_typodescent")
-        self._setFromFont(info, "openTypeOS2TypoLineGap", "os2_typolinegap")
-        self._setFromFont(info, "openTypeOS2WinAscent", "os2_winascent")
-        self._setFromFont(info, "openTypeOS2WinDescent", "os2_windescent")
-       #self._setFromFont(info, "openTypeOS2Type", "os2_fstype")
-        self._setFromFont(info, "openTypeOS2SubscriptXSize", "os2_subxsize")
-        self._setFromFont(info, "openTypeOS2SubscriptYSize", "os2_subysize")
-        self._setFromFont(info, "openTypeOS2SubscriptXOffset", "os2_subxoff")
-        self._setFromFont(info, "openTypeOS2SubscriptYOffset", "os2_subyoff")
-        self._setFromFont(info, "openTypeOS2SuperscriptXSize", "os2_supxsize")
-        self._setFromFont(info, "openTypeOS2SuperscriptYSize", "os2_supysize")
-        self._setFromFont(info, "openTypeOS2SuperscriptXOffset", "os2_supxoff")
-        self._setFromFont(info, "openTypeOS2SuperscriptYOffset", "os2_supyoff")
-        self._setFromFont(info, "openTypeOS2StrikeoutSize", "os2_strikeysize")
-        self._setFromFont(info, "openTypeOS2StrikeoutPosition", "os2_strikeypos")
+        self._setFromFont("openTypeOS2WidthClass", "os2_width")
+        self._setFromFont("openTypeOS2WeightClass", "os2_weight")
+       #self._setFromFont("openTypeOS2Selection", "")
+        self._setFromFont("openTypeOS2VendorID", "os2_vendor")
+        self._setFromFont("openTypeOS2Panose", "os2_panose")
+        self._setFromFont("openTypeOS2FamilyClass", "os2_family_class")
+       #self._setFromFont("openTypeOS2UnicodeRanges", "os2_unicoderanges")
+       #self._setFromFont("openTypeOS2CodePageRanges", "os2_codepages")
+        self._setFromFont("openTypeOS2TypoAscender", "os2_typoascent")
+        self._setFromFont("openTypeOS2TypoDescender", "os2_typodescent")
+        self._setFromFont("openTypeOS2TypoLineGap", "os2_typolinegap")
+        self._setFromFont("openTypeOS2WinAscent", "os2_winascent")
+        self._setFromFont("openTypeOS2WinDescent", "os2_windescent")
+       #self._setFromFont("openTypeOS2Type", "os2_fstype")
+        self._setFromFont("openTypeOS2SubscriptXSize", "os2_subxsize")
+        self._setFromFont("openTypeOS2SubscriptYSize", "os2_subysize")
+        self._setFromFont("openTypeOS2SubscriptXOffset", "os2_subxoff")
+        self._setFromFont("openTypeOS2SubscriptYOffset", "os2_subyoff")
+        self._setFromFont("openTypeOS2SuperscriptXSize", "os2_supxsize")
+        self._setFromFont("openTypeOS2SuperscriptYSize", "os2_supysize")
+        self._setFromFont("openTypeOS2SuperscriptXOffset", "os2_supxoff")
+        self._setFromFont("openTypeOS2SuperscriptYOffset", "os2_supyoff")
+        self._setFromFont("openTypeOS2StrikeoutSize", "os2_strikeysize")
+        self._setFromFont("openTypeOS2StrikeoutPosition", "os2_strikeypos")
 
         # OpenType names
-        self._setFromSfntName(info, "openTypeNameDesigner", "Designer")
-        self._setFromSfntName(info, "openTypeNameDesignerURL", "Designer URL")
-        self._setFromSfntName(info, "openTypeNameManufacturer", "Manufacturer")
-        self._setFromSfntName(info, "openTypeNameManufacturerURL", "Vendor URL")
-        self._setFromSfntName(info, "openTypeNameLicense", "License")
-        self._setFromSfntName(info, "openTypeNameLicenseURL", "License URL")
-        self._setFromSfntName(info, "openTypeNameVersion", "Version")
-        self._setFromSfntName(info, "openTypeNameUniqueID", "UniqueID")
-        self._setFromSfntName(info, "openTypeNameDescription", "Descriptor")
-        self._setFromSfntName(info, "openTypeNamePreferredFamilyName", "Preferred Family")
-        self._setFromSfntName(info, "openTypeNamePreferredSubfamilyName", "Preferred Styles")
-        self._setFromSfntName(info, "openTypeNameCompatibleFullName", "Compatible Full")
-        self._setFromSfntName(info, "openTypeNameSampleText", "Sample Text")
-        self._setFromSfntName(info, "openTypeNameWWSFamilyName", "WWS Family")
-        self._setFromSfntName(info, "openTypeNameWWSSubfamilyName", "WWS Subfamily")
+        self._setFromSfntName("openTypeNameDesigner", "Designer")
+        self._setFromSfntName("openTypeNameDesignerURL", "Designer URL")
+        self._setFromSfntName("openTypeNameManufacturer", "Manufacturer")
+        self._setFromSfntName("openTypeNameManufacturerURL", "Vendor URL")
+        self._setFromSfntName("openTypeNameLicense", "License")
+        self._setFromSfntName("openTypeNameLicenseURL", "License URL")
+        self._setFromSfntName("openTypeNameVersion", "Version")
+        self._setFromSfntName("openTypeNameUniqueID", "UniqueID")
+        self._setFromSfntName("openTypeNameDescription", "Descriptor")
+        self._setFromSfntName("openTypeNamePreferredFamilyName", "Preferred Family")
+        self._setFromSfntName("openTypeNamePreferredSubfamilyName", "Preferred Styles")
+        self._setFromSfntName("openTypeNameCompatibleFullName", "Compatible Full")
+        self._setFromSfntName("openTypeNameSampleText", "Sample Text")
+        self._setFromSfntName("openTypeNameWWSFamilyName", "WWS Family")
+        self._setFromSfntName("openTypeNameWWSSubfamilyName", "WWS Subfamily")
 
         # PostScript
-        self._setFromFont(info, "postscriptFontName", "fontname")
-        self._setFromFont(info, "postscriptFullName", "fullname")
+        self._setFromFont("postscriptFontName", "fontname")
+        self._setFromFont("postscriptFullName", "fullname")
         info.postscriptSlantAngle = info.italicAngle
-        self._setFromFont(info, "postscriptWeightName", "weight")
-        self._setFromFont(info, "postscriptUniqueID", "uniqueid")
-        self._setFromFont(info, "postscriptUnderlineThickness", "uwidth")
-        self._setFromFont(info, "postscriptUnderlinePosition", "upos")
+        self._setFromFont("postscriptWeightName", "weight")
+        self._setFromFont("postscriptUniqueID", "uniqueid")
+        self._setFromFont("postscriptUnderlineThickness", "uwidth")
+        self._setFromFont("postscriptUnderlinePosition", "upos")
 
     def _buildLayers(self):
         for i in range(self._sfd.layer_cnt):
