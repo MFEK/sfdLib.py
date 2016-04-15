@@ -141,7 +141,7 @@ class SFDFont(Font):
                     y = p0.y
                 else:
                     # assert until I encounter such a font
-                    assert False, p0, p1, name
+                    assert False, (p0, p1, name)
                 self.info.appendGuideline({"x": x, "y": y, "name": name})
 
     def _buildLayers(self):
