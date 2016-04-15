@@ -44,7 +44,7 @@ class SFDFont(Font):
         #info.year = self._sfd
 
         info.copyright = self._sfd.copyright
-        #info.trademark = self._sfd
+        self._setFromSfntName(info, "trademark", "Trademark")
         info.unitsPerEm = self._sfd.em
         info.ascender = self._sfd.ascent
         info.descender = -self._sfd.descent
