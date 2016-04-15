@@ -24,6 +24,12 @@ class SFDFont(Font):
     def _setFromFont(self, ufoName, sfdName):
         value = getattr(self._sfd, sfdName)
         if value:
+            # UFO's descender is -ve and FontForge's is +ve
+            if sfdName in ("descent"):
+                value = -value
+            # -ve value means computing it failed
+            if sfdName in ("capHeight", "xHeight") and value < 0:
+                return
             setattr(self.info, ufoName, value)
 
     def _buildInfo(self):
@@ -47,13 +53,9 @@ class SFDFont(Font):
         self._setFromFont("unitsPerEm", "em")
         self._setFromFont("ascender", "ascent")
         self._setFromFont("descender", "descent")
-        if info.descender:
-            info.descender = -info.descender
         self._setFromFont("italicAngle", "italicangle")
-        if self._sfd.capHeight > 0:
-            self._setFromFont("capHeight", "capHeight")
-        if self._sfd.xHeight > 0:
-            self._setFromFont("xHeight", "xHeight")
+        self._setFromFont("capHeight", "capHeight")
+        self._setFromFont("xHeight", "xHeight")
         self._setFromFont("note", "comment")
 
         # make sure we get absolute values for those
