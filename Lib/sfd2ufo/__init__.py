@@ -30,6 +30,8 @@ class SFDFont(Font):
             # -ve value means computing it failed
             if sfdName in ("capHeight", "xHeight") and value < 0:
                 return
+            if sfdName == "os2_family_class":
+                value = (value >> 8, value & 0xff)
             setattr(self.info, ufoName, value)
 
     def _buildInfo(self):
