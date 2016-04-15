@@ -13,6 +13,9 @@ setup(
     packages = [
         "sfd2ufo",
     ],
+    entry_points = {
+        'console_scripts': ['sfd2ufo = sfd2ufo.__main__:main'],
+    },
     package_dir = {'': 'Lib'},
     classifiers = [
         "Development Status :: 4 - Beta",
