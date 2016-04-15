@@ -29,7 +29,7 @@ class SFDFont(Font):
     def _buildInfo(self):
         info = self.info
 
-        info.familyName = self._sfd.familyname
+        self._setFromFont(info, "familyName", "familyname")
         self._setFromSfntName(info, "styleName", "SubFamily")
         versionMajor = ""
         versionMinor = ""
@@ -42,18 +42,19 @@ class SFDFont(Font):
         if versionMinor.isdigit():
             info.versionMinor = int(versionMinor)
 
-        info.copyright = self._sfd.copyright
+        self._setFromFont(info, "copyright", "copyright")
         self._setFromSfntName(info, "trademark", "Trademark")
-        info.unitsPerEm = self._sfd.em
-        info.ascender = self._sfd.ascent
-        info.descender = -self._sfd.descent
-        if self._sfd.italicangle:
-            info.italicAngle = self._sfd.italicangle
+        self._setFromFont(info, "unitsPerEm", "em")
+        self._setFromFont(info, "ascender", "ascent")
+        self._setFromFont(info, "descender", "descent")
+        if info.descender:
+            info.descender = -info.descender
+        self._setFromFont(info, "italicAngle", "italicangle")
         if self._sfd.capHeight > 0:
-            info.capHeight = self._sfd.capHeight
+            self._setFromFont(info, "capHeight", "capHeight")
         if self._sfd.xHeight > 0:
-            info.xHeight = self._sfd.xHeight
-        info.note = self._sfd.comment
+            self._setFromFont(info, "xHeight", "xHeight")
+        self._setFromFont(info, "note", "comment")
 
         # make sure we get absolute values for those
         for attr in ("os2_typoascent", "os2_typodescent", "os2_winascent", "os2_windescent", "hhea_ascent", "hhea_descent"):
@@ -108,14 +109,13 @@ class SFDFont(Font):
         self._setFromSfntName(info, "openTypeNameWWSSubfamilyName", "WWS Subfamily")
 
         # PostScript
-        info.postscriptFontName = self._sfd.fontname
-        info.postscriptFullName = self._sfd.fullname
+        self._setFromFont(info, "postscriptFontName", "fontname")
+        self._setFromFont(info, "postscriptFullName", "fullname")
         info.postscriptSlantAngle = info.italicAngle
-        info.postscriptWeightName = self._sfd.weight
-        if self._sfd.uniqueid:
-            info.postscriptUniqueID = self._sfd.uniqueid
-        info.postscriptUnderlineThickness = self._sfd.uwidth
-        info.postscriptUnderlinePosition = self._sfd.upos
+        self._setFromFont(info, "postscriptWeightName", "weight")
+        self._setFromFont(info, "postscriptUniqueID", "uniqueid")
+        self._setFromFont(info, "postscriptUnderlineThickness", "uwidth")
+        self._setFromFont(info, "postscriptUnderlinePosition", "upos")
 
     def _buildLayers(self):
         for i in range(self._sfd.layer_cnt):
