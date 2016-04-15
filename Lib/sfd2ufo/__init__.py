@@ -40,7 +40,8 @@ class SFDFont(Font):
         versionMajor = ""
         versionMinor = ""
         if "." in self._sfd.version:
-            versionMajor, versionMinor = self._sfd.version.split(".")
+            versionMajor = self._sfd.version.split(".")[0]
+            versionMinor = self._sfd.version.split(".")[1]
         else:
             versionMajor = self._sfd.version
         if versionMajor.isdigit():
