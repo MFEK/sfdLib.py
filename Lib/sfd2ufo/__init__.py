@@ -1,4 +1,3 @@
-#!/usr/bin/python2
 from defcon import Font
 import fontforge
 
