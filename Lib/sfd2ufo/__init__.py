@@ -122,6 +122,28 @@ class SFDFont(Font):
         self._sefInfo("postscriptUnderlineThickness", "uwidth")
         self._sefInfo("postscriptUnderlinePosition", "upos")
 
+        # Guidelines
+        for c in self._sfd.guide:
+            if len(c) == 2:
+                # I suppose this is a line
+                x = None
+                y = None
+                angle = None
+                name = None
+
+                p0 = c[0]
+                p1 = c[1]
+                name = c.name
+
+                if p0.x == p1.x:
+                    x = p0.x
+                elif p0.y == p1.y:
+                    y = p0.y
+                else:
+                    # assert until I encounter such a font
+                    assert False, p0, p1, name
+                self.info.appendGuideline({"x": x, "y": y, "name": name})
+
     def _buildLayers(self):
         for i in range(self._sfd.layer_cnt):
             name = self._sfd.layers[i].name
