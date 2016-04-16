@@ -160,7 +160,7 @@ class SFDFont(Font):
                 layer = self._layerMap[sfdLayerName]
                 if not sfdLayer and not sfdLayerRefs and layer != self.layers.defaultLayer:
                     continue
-                glyph = layer.newGlyph(sfdGlyph.name)
+                glyph = layer.newGlyph(sfdGlyph.glyphname)
                 pen = glyph.getPen()
                 glyph.width = sfdGlyph.width
                 sfdLayer.draw(pen)
@@ -176,7 +176,7 @@ class SFDFont(Font):
                     glyph.lib["org.fontforge.glyphclass"] = sfdGlyph.glyphclass
 
             if sfdGlyph.unicode > 0:
-                glyph = self[sfdGlyph.name]
+                glyph = self[sfdGlyph.glyphname]
                 glyph.unicodes = [sfdGlyph.unicode]
                 if sfdGlyph.altuni:
                     for altuni in sfdGlyph.altuni:
