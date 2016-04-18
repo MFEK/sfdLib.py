@@ -1,5 +1,6 @@
 from defcon import Font
 import fontforge
+import math
 
 class SFDFont(Font):
 
@@ -124,8 +125,8 @@ class SFDFont(Font):
 
         # Guidelines
         for c in self._sfd.guide:
+            # I suppose this is a line
             if len(c) == 2:
-                # I suppose this is a line
                 x = None
                 y = None
                 angle = None
@@ -140,9 +141,10 @@ class SFDFont(Font):
                 elif p0.y == p1.y:
                     y = p0.y
                 else:
-                    # assert until I encounter such a font
-                    assert False, (p0, p1, name)
-                self.info.appendGuideline({"x": x, "y": y, "name": name})
+                    x = p0.x
+                    y = p0.y
+                    angle = math.degrees(math.atan2(p1.x - p0.x, p1.y - p0.y))
+                self.info.appendGuideline({"x": x, "y": y, "name": name, "angle": angle})
 
     def _buildLayers(self):
         for i in range(self._sfd.layer_cnt):
