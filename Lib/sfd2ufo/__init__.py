@@ -35,22 +35,27 @@ class SFDFont(Font):
                 value = (value >> 8, value & 0xff)
             setattr(self.info, ufoName, value)
 
-    def _buildInfo(self):
-        info = self.info
-
-        self._sefInfo("familyName", "familyname")
-        self._sefInfoFromName("styleName", "SubFamily")
-        versionMajor = ""
-        versionMinor = ""
+    def _getVesrsion(self):
+        versionMajor = None
+        versionMinor = None
         if "." in self._sfd.version:
             versionMajor = self._sfd.version.split(".")[0]
             versionMinor = self._sfd.version.split(".")[1]
         else:
             versionMajor = self._sfd.version
-        if versionMajor.isdigit():
-            info.versionMajor = int(versionMajor)
-        if versionMinor.isdigit():
-            info.versionMinor = int(versionMinor)
+        if versionMajor and versionMajor.isdigit():
+            versionMajor = int(versionMajor)
+        if versionMinor and versionMinor.isdigit():
+            versionMinor = int(versionMinor)
+
+        return versionMajor, versionMinor
+
+    def _buildInfo(self):
+        info = self.info
+
+        self._sefInfo("familyName", "familyname")
+        self._sefInfoFromName("styleName", "SubFamily")
+        info.versionMajor, info.versionMinor = self._getVesrsion()
 
         self._sefInfo("copyright", "copyright")
         self._sefInfoFromName("trademark", "Trademark")
