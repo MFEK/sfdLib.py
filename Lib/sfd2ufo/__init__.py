@@ -48,7 +48,7 @@ class SFDFont(Font):
         if versionMinor and versionMinor.isdigit():
             versionMinor = int(versionMinor)
 
-        return versionMajor, versionMinor
+        return versionMajor or None, versionMinor or None
 
     def _buildInfo(self):
         info = self.info
