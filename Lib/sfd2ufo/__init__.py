@@ -17,12 +17,12 @@ class SFDFont(Font):
     def __del__(self):
         self._sfd.close()
 
-    def _sefInfoFromName(self, ufoName, sfdName):
+    def _setInfoFromName(self, ufoName, sfdName):
         for name in self._sfd.sfnt_names:
             if name[0] == "English (US)" and name[1] == sfdName:
                 setattr(self.info, ufoName, name[2])
 
-    def _sefInfo(self, ufoName, sfdName):
+    def _setInfo(self, ufoName, sfdName):
         value = getattr(self._sfd, sfdName)
         if value:
             # UFO's descender is -ve and FontForge's is +ve
@@ -53,80 +53,80 @@ class SFDFont(Font):
     def _buildInfo(self):
         info = self.info
 
-        self._sefInfo("familyName", "familyname")
-        self._sefInfoFromName("styleName", "SubFamily")
+        self._setInfo("familyName", "familyname")
+        self._setInfoFromName("styleName", "SubFamily")
         info.versionMajor, info.versionMinor = self._getVesrsion()
 
-        self._sefInfo("copyright", "copyright")
-        self._sefInfoFromName("trademark", "Trademark")
-        self._sefInfo("unitsPerEm", "em")
-        self._sefInfo("ascender", "ascent")
-        self._sefInfo("descender", "descent")
-        self._sefInfo("italicAngle", "italicangle")
-        self._sefInfo("capHeight", "capHeight")
-        self._sefInfo("xHeight", "xHeight")
-        self._sefInfo("note", "comment")
+        self._setInfo("copyright", "copyright")
+        self._setInfoFromName("trademark", "Trademark")
+        self._setInfo("unitsPerEm", "em")
+        self._setInfo("ascender", "ascent")
+        self._setInfo("descender", "descent")
+        self._setInfo("italicAngle", "italicangle")
+        self._setInfo("capHeight", "capHeight")
+        self._setInfo("xHeight", "xHeight")
+        self._setInfo("note", "comment")
 
         # make sure we get absolute values for those
         for attr in ("os2_typoascent", "os2_typodescent", "os2_winascent", "os2_windescent", "hhea_ascent", "hhea_descent"):
             setattr(self._sfd, "%s_add" % attr, False)
 
         # hhea
-        self._sefInfo("openTypeHheaAscender", "hhea_ascent")
-        self._sefInfo("openTypeHheaDescender", "hhea_descent")
-        self._sefInfo("openTypeHheaLineGap", "hhea_linegap")
+        self._setInfo("openTypeHheaAscender", "hhea_ascent")
+        self._setInfo("openTypeHheaDescender", "hhea_descent")
+        self._setInfo("openTypeHheaLineGap", "hhea_linegap")
 
         # OS/2
-        self._sefInfo("openTypeOS2WidthClass", "os2_width")
-        self._sefInfo("openTypeOS2WeightClass", "os2_weight")
-       #self._sefInfo("openTypeOS2Selection", "")
-        self._sefInfo("openTypeOS2VendorID", "os2_vendor")
-        self._sefInfo("openTypeOS2Panose", "os2_panose")
-        self._sefInfo("openTypeOS2FamilyClass", "os2_family_class")
-       #self._sefInfo("openTypeOS2UnicodeRanges", "os2_unicoderanges")
-       #self._sefInfo("openTypeOS2CodePageRanges", "os2_codepages")
-        self._sefInfo("openTypeOS2TypoAscender", "os2_typoascent")
-        self._sefInfo("openTypeOS2TypoDescender", "os2_typodescent")
-        self._sefInfo("openTypeOS2TypoLineGap", "os2_typolinegap")
-        self._sefInfo("openTypeOS2WinAscent", "os2_winascent")
-        self._sefInfo("openTypeOS2WinDescent", "os2_windescent")
-       #self._sefInfo("openTypeOS2Type", "os2_fstype")
-        self._sefInfo("openTypeOS2SubscriptXSize", "os2_subxsize")
-        self._sefInfo("openTypeOS2SubscriptYSize", "os2_subysize")
-        self._sefInfo("openTypeOS2SubscriptXOffset", "os2_subxoff")
-        self._sefInfo("openTypeOS2SubscriptYOffset", "os2_subyoff")
-        self._sefInfo("openTypeOS2SuperscriptXSize", "os2_supxsize")
-        self._sefInfo("openTypeOS2SuperscriptYSize", "os2_supysize")
-        self._sefInfo("openTypeOS2SuperscriptXOffset", "os2_supxoff")
-        self._sefInfo("openTypeOS2SuperscriptYOffset", "os2_supyoff")
-        self._sefInfo("openTypeOS2StrikeoutSize", "os2_strikeysize")
-        self._sefInfo("openTypeOS2StrikeoutPosition", "os2_strikeypos")
+        self._setInfo("openTypeOS2WidthClass", "os2_width")
+        self._setInfo("openTypeOS2WeightClass", "os2_weight")
+       #self._setInfo("openTypeOS2Selection", "")
+        self._setInfo("openTypeOS2VendorID", "os2_vendor")
+        self._setInfo("openTypeOS2Panose", "os2_panose")
+        self._setInfo("openTypeOS2FamilyClass", "os2_family_class")
+       #self._setInfo("openTypeOS2UnicodeRanges", "os2_unicoderanges")
+       #self._setInfo("openTypeOS2CodePageRanges", "os2_codepages")
+        self._setInfo("openTypeOS2TypoAscender", "os2_typoascent")
+        self._setInfo("openTypeOS2TypoDescender", "os2_typodescent")
+        self._setInfo("openTypeOS2TypoLineGap", "os2_typolinegap")
+        self._setInfo("openTypeOS2WinAscent", "os2_winascent")
+        self._setInfo("openTypeOS2WinDescent", "os2_windescent")
+       #self._setInfo("openTypeOS2Type", "os2_fstype")
+        self._setInfo("openTypeOS2SubscriptXSize", "os2_subxsize")
+        self._setInfo("openTypeOS2SubscriptYSize", "os2_subysize")
+        self._setInfo("openTypeOS2SubscriptXOffset", "os2_subxoff")
+        self._setInfo("openTypeOS2SubscriptYOffset", "os2_subyoff")
+        self._setInfo("openTypeOS2SuperscriptXSize", "os2_supxsize")
+        self._setInfo("openTypeOS2SuperscriptYSize", "os2_supysize")
+        self._setInfo("openTypeOS2SuperscriptXOffset", "os2_supxoff")
+        self._setInfo("openTypeOS2SuperscriptYOffset", "os2_supyoff")
+        self._setInfo("openTypeOS2StrikeoutSize", "os2_strikeysize")
+        self._setInfo("openTypeOS2StrikeoutPosition", "os2_strikeypos")
 
         # OpenType names
-        self._sefInfoFromName("openTypeNameDesigner", "Designer")
-        self._sefInfoFromName("openTypeNameDesignerURL", "Designer URL")
-        self._sefInfoFromName("openTypeNameManufacturer", "Manufacturer")
-        self._sefInfoFromName("openTypeNameManufacturerURL", "Vendor URL")
-        self._sefInfoFromName("openTypeNameLicense", "License")
-        self._sefInfoFromName("openTypeNameLicenseURL", "License URL")
-        self._sefInfoFromName("openTypeNameVersion", "Version")
-        self._sefInfoFromName("openTypeNameUniqueID", "UniqueID")
-        self._sefInfoFromName("openTypeNameDescription", "Descriptor")
-        self._sefInfoFromName("openTypeNamePreferredFamilyName", "Preferred Family")
-        self._sefInfoFromName("openTypeNamePreferredSubfamilyName", "Preferred Styles")
-        self._sefInfoFromName("openTypeNameCompatibleFullName", "Compatible Full")
-        self._sefInfoFromName("openTypeNameSampleText", "Sample Text")
-        self._sefInfoFromName("openTypeNameWWSFamilyName", "WWS Family")
-        self._sefInfoFromName("openTypeNameWWSSubfamilyName", "WWS Subfamily")
+        self._setInfoFromName("openTypeNameDesigner", "Designer")
+        self._setInfoFromName("openTypeNameDesignerURL", "Designer URL")
+        self._setInfoFromName("openTypeNameManufacturer", "Manufacturer")
+        self._setInfoFromName("openTypeNameManufacturerURL", "Vendor URL")
+        self._setInfoFromName("openTypeNameLicense", "License")
+        self._setInfoFromName("openTypeNameLicenseURL", "License URL")
+        self._setInfoFromName("openTypeNameVersion", "Version")
+        self._setInfoFromName("openTypeNameUniqueID", "UniqueID")
+        self._setInfoFromName("openTypeNameDescription", "Descriptor")
+        self._setInfoFromName("openTypeNamePreferredFamilyName", "Preferred Family")
+        self._setInfoFromName("openTypeNamePreferredSubfamilyName", "Preferred Styles")
+        self._setInfoFromName("openTypeNameCompatibleFullName", "Compatible Full")
+        self._setInfoFromName("openTypeNameSampleText", "Sample Text")
+        self._setInfoFromName("openTypeNameWWSFamilyName", "WWS Family")
+        self._setInfoFromName("openTypeNameWWSSubfamilyName", "WWS Subfamily")
 
         # PostScript
-        self._sefInfo("postscriptFontName", "fontname")
-        self._sefInfo("postscriptFullName", "fullname")
+        self._setInfo("postscriptFontName", "fontname")
+        self._setInfo("postscriptFullName", "fullname")
         info.postscriptSlantAngle = info.italicAngle
-        self._sefInfo("postscriptWeightName", "weight")
-        self._sefInfo("postscriptUniqueID", "uniqueid")
-        self._sefInfo("postscriptUnderlineThickness", "uwidth")
-        self._sefInfo("postscriptUnderlinePosition", "upos")
+        self._setInfo("postscriptWeightName", "weight")
+        self._setInfo("postscriptUniqueID", "uniqueid")
+        self._setInfo("postscriptUnderlineThickness", "uwidth")
+        self._setInfo("postscriptUnderlinePosition", "upos")
 
         # Guidelines
         for c in self._sfd.guide:
