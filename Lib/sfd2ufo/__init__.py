@@ -71,6 +71,9 @@ class SFDFont(Font):
         for attr in ("os2_typoascent", "os2_typodescent", "os2_winascent", "os2_windescent", "hhea_ascent", "hhea_descent"):
             setattr(self._sfd, "%s_add" % attr, False)
 
+        # head
+        self._setInfo("openTypeHeadCreated", "creationtime")
+
         # hhea
         self._setInfo("openTypeHheaAscender", "hhea_ascent")
         self._setInfo("openTypeHheaDescender", "hhea_descent")
