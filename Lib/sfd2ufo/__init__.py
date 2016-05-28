@@ -1,3 +1,6 @@
+#
+# encoding: utf-8
+
 from defcon import Font
 import fontforge
 import math
@@ -69,7 +72,8 @@ class SFDFont(Font):
 
         # make sure we get absolute values for those
         for attr in ("os2_typoascent", "os2_typodescent", "os2_winascent", "os2_windescent", "hhea_ascent", "hhea_descent"):
-            setattr(self._sfd, "%s_add" % attr, False)
+            if getattr(self._sfd, "%s_add" % attr):
+                raise ValueError("Can’t handle offset metrics, unset the Is Offset box in FontForge GUI.")
 
         # head
         self._setInfo("openTypeHeadCreated", "creationtime")
