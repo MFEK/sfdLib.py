@@ -71,7 +71,19 @@ class SFDFont(Font):
         self._setInfo("note", "comment")
 
         # make sure we get absolute values for those
-        for attr in ("os2_typoascent", "os2_typodescent", "os2_winascent", "os2_windescent", "hhea_ascent", "hhea_descent"):
+        if self._sfd.os2_typoascent_add:
+            self._sfd.os2_typoascent_add = False
+            self._sfd.os2_typoascent = self._sfd.ascent + self._sfd.os2_typoascent
+        if self._sfd.os2_typodescent_add:
+            self._sfd.os2_typodescent_add = False
+            self._sfd.os2_typodescent = -self._sfd.descent + self._sfd.os2_typodescent
+        if self._sfd.hhea_ascent_add:
+            self._sfd.hhea_ascent_add = False
+            self._sfd.hhea_ascent = self._sfd.ascent + self._sfd.hhea_ascent
+        if self._sfd.hhea_descent_add:
+            self._sfd.hhea_descent_add = False
+            self._sfd.hhea_descent = -self._sfd.descent + self._sfd.hhea_descent
+        for attr in ("os2_winascent", "os2_windescent"):
             if getattr(self._sfd, "%s_add" % attr):
                 raise ValueError("Can’t handle offset metrics, unset the Is Offset box in FontForge GUI.")
 
