@@ -26,8 +26,8 @@ class SFDFont(Font):
                 setattr(self.info, ufoName, name[2])
 
     def _setInfo(self, ufoName, sfdName):
-        value = getattr(self._sfd, sfdName)
-        if value:
+        value = getattr(self._sfd, sfdName, None)
+        if value is not None:
             # UFO's descender is -ve and FontForge's is +ve
             if sfdName in ("descent"):
                 value = -value
@@ -36,6 +36,9 @@ class SFDFont(Font):
                 return
             if sfdName == "os2_family_class":
                 value = (value >> 8, value & 0xff)
+            if sfdName == "os2_fstype":
+                fstype = [i for i in range(16) if value & (1 << i)]
+                value = fstype
             setattr(self.info, ufoName, value)
 
     def _getVesrsion(self):
@@ -109,7 +112,7 @@ class SFDFont(Font):
         self._setInfo("openTypeOS2TypoLineGap", "os2_typolinegap")
         self._setInfo("openTypeOS2WinAscent", "os2_winascent")
         self._setInfo("openTypeOS2WinDescent", "os2_windescent")
-       #self._setInfo("openTypeOS2Type", "os2_fstype")
+        self._setInfo("openTypeOS2Type", "os2_fstype")
         self._setInfo("openTypeOS2SubscriptXSize", "os2_subxsize")
         self._setInfo("openTypeOS2SubscriptYSize", "os2_subysize")
         self._setInfo("openTypeOS2SubscriptXOffset", "os2_subxoff")
