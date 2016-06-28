@@ -107,10 +107,10 @@ class SFDFont(Font):
 
         if self._sfd.hhea_ascent_add:
             self._sfd.hhea_ascent_add = False
-            self._sfd.hhea_ascent = self._sfd.ascent + self._sfd.hhea_ascent
+            self._sfd.hhea_ascent = bb["yMax"] + self._sfd.hhea_ascent
         if self._sfd.hhea_descent_add:
             self._sfd.hhea_descent_add = False
-            self._sfd.hhea_descent = -self._sfd.descent + self._sfd.hhea_descent
+            self._sfd.hhea_descent = bb["yMin"] + self._sfd.hhea_descent
 
         # head
         self._setInfo("openTypeHeadCreated", "creationtime")
