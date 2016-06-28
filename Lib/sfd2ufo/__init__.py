@@ -12,6 +12,7 @@ class SFDFont(Font):
 
         self._sfd = fontforge.open(path)
         self._layerMap = {}
+        self._bounds = None
 
         self._buildInfo()
         self._buildLayers()
@@ -39,6 +40,21 @@ class SFDFont(Font):
             if sfdName == "os2_fstype":
                 fstype = [i for i in range(16) if value & (1 << i)]
                 value = fstype
+
+            bb = self._getFontBounds()
+            if sfdName == "os2_typoascent" and getattr(self._sfd, sfdName + "_add"):
+                value = self._sfd.ascent + value
+            if sfdName == "os2_typodescent" and getattr(self._sfd, sfdName + "_add"):
+                value = -self._sfd.descent + value
+            if sfdName == "os2_winascent" and getattr(self._sfd, sfdName + "_add"):
+                value = bb["yMax"] + value
+            if sfdName == "os2_windescent" and getattr(self._sfd, sfdName + "_add"):
+                value = -bb["yMin"] + value
+            if sfdName == "hhea_ascent" and getattr(self._sfd, sfdName + "_add"):
+                value = bb["yMax"] + value
+            if sfdName == "hhea_descent" and getattr(self._sfd, sfdName + "_add"):
+                value = bb["yMin"] + value
+
             setattr(self.info, ufoName, value)
 
     def _getVesrsion(self):
@@ -56,20 +72,24 @@ class SFDFont(Font):
 
         return versionMajor or None, versionMinor or None
 
-    def _calclauteFontBounds(self):
+    def _getFontBounds(self):
         """Calculate FF font bounds."""
-        bbox = [0, 0, 0, 0]
-        for glyph in self._sfd.glyphs():
-            gBBox = glyph.boundingBox()
-            if bbox == [0, 0, 0, 0]:
-                bbox = list(gBBox)
-            else:
-               if gBBox[0] < bbox[0]: bbox[0] = gBBox[0] # xMin
-               if gBBox[1] < bbox[1]: bbox[1] = gBBox[1] # yMin
-               if gBBox[2] > bbox[2]: bbox[2] = gBBox[2] # xMax
-               if gBBox[3] > bbox[3]: bbox[3] = gBBox[3] # yMax
+        if self._bounds is None:
+            bbox = [0, 0, 0, 0]
+            for glyph in self._sfd.glyphs():
+                gBBox = glyph.boundingBox()
+                if bbox == [0, 0, 0, 0]:
+                    bbox = list(gBBox)
+                else:
+                   if gBBox[0] < bbox[0]: bbox[0] = gBBox[0] # xMin
+                   if gBBox[1] < bbox[1]: bbox[1] = gBBox[1] # yMin
+                   if gBBox[2] > bbox[2]: bbox[2] = gBBox[2] # xMax
+                   if gBBox[3] > bbox[3]: bbox[3] = gBBox[3] # yMax
 
-        return dict(xMin=bbox[0], yMin=bbox[1], xMax=bbox[2], yMax=bbox[3])
+            bbox = [int(v) for v in bbox]
+            self._bounds = dict(xMin=bbox[0], yMin=bbox[1], xMax=bbox[2], yMax=bbox[3])
+
+        return self._bounds
 
     def _buildInfo(self):
         info = self.info
@@ -87,30 +107,6 @@ class SFDFont(Font):
         self._setInfo("capHeight", "capHeight")
         self._setInfo("xHeight", "xHeight")
         self._setInfo("note", "comment")
-
-        # make sure we get absolute values for those
-        # TODO: Don’t modify values in place
-        bb = self._calclauteFontBounds()
-        if self._sfd.os2_typoascent_add:
-            self._sfd.os2_typoascent_add = False
-            self._sfd.os2_typoascent = self._sfd.ascent + self._sfd.os2_typoascent
-        if self._sfd.os2_typodescent_add:
-            self._sfd.os2_typodescent_add = False
-            self._sfd.os2_typodescent = -self._sfd.descent + self._sfd.os2_typodescent
-
-        if self._sfd.os2_winascent_add:
-            self._sfd.os2_winascent_add = False
-            self._sfd.os2_winascent = bb["yMax"] + self._sfd.os2_winascent
-        if self._sfd.os2_windescent_add:
-            self._sfd.os2_windescent_add = False
-            self._sfd.os2_windescent = -bb["yMin"] + self._sfd.os2_windescent
-
-        if self._sfd.hhea_ascent_add:
-            self._sfd.hhea_ascent_add = False
-            self._sfd.hhea_ascent = bb["yMax"] + self._sfd.hhea_ascent
-        if self._sfd.hhea_descent_add:
-            self._sfd.hhea_descent_add = False
-            self._sfd.hhea_descent = bb["yMin"] + self._sfd.hhea_descent
 
         # head
         self._setInfo("openTypeHeadCreated", "creationtime")
