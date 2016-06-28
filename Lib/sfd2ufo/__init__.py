@@ -56,6 +56,21 @@ class SFDFont(Font):
 
         return versionMajor or None, versionMinor or None
 
+    def _calclauteFontBounds(self):
+        """Calculate FF font bounds."""
+        bbox = [0, 0, 0, 0]
+        for glyph in self._sfd.glyphs():
+            gBBox = glyph.boundingBox()
+            if bbox == [0, 0, 0, 0]:
+                bbox = list(gBBox)
+            else:
+               if gBBox[0] < bbox[0]: bbox[0] = gBBox[0] # xMin
+               if gBBox[1] < bbox[1]: bbox[1] = gBBox[1] # yMin
+               if gBBox[2] > bbox[2]: bbox[2] = gBBox[2] # xMax
+               if gBBox[3] > bbox[3]: bbox[3] = gBBox[3] # yMax
+
+        return dict(xMin=bbox[0], yMin=bbox[1], xMax=bbox[2], yMax=bbox[3])
+
     def _buildInfo(self):
         info = self.info
 
@@ -74,21 +89,28 @@ class SFDFont(Font):
         self._setInfo("note", "comment")
 
         # make sure we get absolute values for those
+        # TODO: Don’t modify values in place
+        bb = self._calclauteFontBounds()
         if self._sfd.os2_typoascent_add:
             self._sfd.os2_typoascent_add = False
             self._sfd.os2_typoascent = self._sfd.ascent + self._sfd.os2_typoascent
         if self._sfd.os2_typodescent_add:
             self._sfd.os2_typodescent_add = False
             self._sfd.os2_typodescent = -self._sfd.descent + self._sfd.os2_typodescent
+
+        if self._sfd.os2_winascent_add:
+            self._sfd.os2_winascent_add = False
+            self._sfd.os2_winascent = bb["yMax"] + self._sfd.os2_winascent
+        if self._sfd.os2_windescent_add:
+            self._sfd.os2_windescent_add = False
+            self._sfd.os2_windescent = -bb["yMin"] + self._sfd.os2_windescent
+
         if self._sfd.hhea_ascent_add:
             self._sfd.hhea_ascent_add = False
             self._sfd.hhea_ascent = self._sfd.ascent + self._sfd.hhea_ascent
         if self._sfd.hhea_descent_add:
             self._sfd.hhea_descent_add = False
             self._sfd.hhea_descent = -self._sfd.descent + self._sfd.hhea_descent
-        for attr in ("os2_winascent", "os2_windescent"):
-            if getattr(self._sfd, "%s_add" % attr):
-                raise ValueError("Can’t handle offset metrics, unset the Is Offset box in FontForge GUI.")
 
         # head
         self._setInfo("openTypeHeadCreated", "creationtime")
