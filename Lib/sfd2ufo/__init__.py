@@ -119,7 +119,6 @@ class SFDFont(Font):
         # OS/2
         self._setInfo("openTypeOS2WidthClass", "os2_width")
         self._setInfo("openTypeOS2WeightClass", "os2_weight")
-       #self._setInfo("openTypeOS2Selection", "")
         self._setInfo("openTypeOS2VendorID", "os2_vendor")
         self._setInfo("openTypeOS2Panose", "os2_panose")
         self._setInfo("openTypeOS2FamilyClass", "os2_family_class")
@@ -141,6 +140,9 @@ class SFDFont(Font):
         self._setInfo("openTypeOS2SuperscriptYOffset", "os2_supyoff")
         self._setInfo("openTypeOS2StrikeoutSize", "os2_strikeysize")
         self._setInfo("openTypeOS2StrikeoutPosition", "os2_strikeypos")
+
+        if self._sfd.os2_use_typo_metrics:
+            info.openTypeOS2Selection = [7]
 
         # OpenType names
         self._setInfoFromName("openTypeNameDesigner", "Designer")
