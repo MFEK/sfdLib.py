@@ -233,3 +233,14 @@ class SFDFont(Font):
                         if altuni[1] == 0xfe00:
                             glyph.unicodes.append(altuni[0])
 
+            for anchor in sfdGlyph.anchorPoints:
+                name, kind, x, y = anchor[:4]
+                if kind == "mark":
+                    name = "_" + name
+                elif kind == "ligature":
+                    index = anchor[4]
+                    name = "%s_%s" % (name, index)
+
+                assert(kind not in ["entry", "exit"]), "I don’t know how to write cursive anchors in UFO: " % name
+                glyph.appendAnchor(dict(name=name, x=x, y=y))
+
