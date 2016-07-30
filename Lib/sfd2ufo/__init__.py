@@ -240,7 +240,8 @@ class SFDFont(Font):
                 elif kind == "ligature":
                     index = anchor[4]
                     name = "%s_%s" % (name, index)
+                elif kind in ["entry", "exit"]:
+                    name = "%s_%s" % (name, kind)
 
-                assert(kind not in ["entry", "exit"]), "I don’t know how to write cursive anchors in UFO: " % name
                 glyph.appendAnchor(dict(name=name, x=x, y=y))
 
