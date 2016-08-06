@@ -49,7 +49,7 @@ class SFDFont(Font):
             if sfdName == "os2_winascent" and getattr(self._sfd, sfdName + "_add"):
                 value = bb["yMax"] + value
             if sfdName == "os2_windescent" and getattr(self._sfd, sfdName + "_add"):
-                value = -bb["yMin"] + value
+                value = max(-bb["yMin"] + value, 0)
             if sfdName == "hhea_ascent" and getattr(self._sfd, sfdName + "_add"):
                 value = bb["yMax"] + value
             if sfdName == "hhea_descent" and getattr(self._sfd, sfdName + "_add"):
