@@ -14,9 +14,9 @@ class SFDFont(Font):
         self._layerMap = {}
         self._bounds = None
 
-        self._buildInfo()
         self._buildLayers()
         self._buildGlyphs()
+        self._buildInfo()
 
     def __del__(self):
         self._sfd.close()
@@ -74,22 +74,9 @@ class SFDFont(Font):
 
     def _getFontBounds(self):
         """Calculate FF font bounds."""
-        if self._bounds is None:
-            bbox = [0, 0, 0, 0]
-            for glyph in self._sfd.glyphs():
-                gBBox = glyph.boundingBox()
-                if bbox == [0, 0, 0, 0]:
-                    bbox = list(gBBox)
-                else:
-                   if gBBox[0] < bbox[0]: bbox[0] = gBBox[0] # xMin
-                   if gBBox[1] < bbox[1]: bbox[1] = gBBox[1] # yMin
-                   if gBBox[2] > bbox[2]: bbox[2] = gBBox[2] # xMax
-                   if gBBox[3] > bbox[3]: bbox[3] = gBBox[3] # yMax
 
-            bbox = [int(v) for v in bbox]
-            self._bounds = dict(xMin=bbox[0], yMin=bbox[1], xMax=bbox[2], yMax=bbox[3])
-
-        return self._bounds
+        bbox = [int(round(v)) for v in self.bounds]
+        return dict(xMin=bbox[0], yMin=bbox[1], xMax=bbox[2], yMax=bbox[3])
 
     def _buildInfo(self):
         info = self.info
