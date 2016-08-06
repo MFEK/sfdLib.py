@@ -16,6 +16,7 @@ class SFDFont(Font):
 
         self._buildLayers()
         self._buildGlyphs()
+        self._buildKerning()
         self._buildInfo()
 
     def __del__(self):
@@ -232,3 +233,27 @@ class SFDFont(Font):
 
                 glyph.appendAnchor(dict(name=name, x=x, y=y))
 
+    def _buildKerning(self):
+        sfd = self._sfd
+
+        subtables = []
+        for lookup in sfd.gpos_lookups:
+            for subtable in sfd.getLookupSubtables(lookup):
+                if sfd.isKerningClass(subtable):
+                    subtables.append(subtable)
+
+        for i, subtable in enumerate(subtables):
+            groups1, groups2, kerns = sfd.getKerningClass(subtable)
+            for j, group1 in enumerate(groups1):
+                for k, group2 in enumerate(groups2):
+                    kern = kerns[(j * len(groups2)) + k]
+                    if group1 is not None and group2 is not None and kern != 0:
+                        name1 = "public.kern1.kc%d_%d" % (i, j)
+                        name2 = "public.kern2.kc%d_%d" % (i, k)
+                        if name1 not in self.groups:
+                            self.groups[name1] = group1
+                        if name2 not in self.groups:
+                            self.groups[name2] = group2
+                        assert self.groups[name1] == group1
+                        assert self.groups[name2] == group2
+                        self.kerning[name1, name2] = kern
