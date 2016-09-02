@@ -1,6 +1,8 @@
 #
 # encoding: utf-8
 
+from fontTools.misc.py23 import *
+
 from defcon import Font
 import fontforge
 import math
@@ -17,6 +19,7 @@ class SFDFont(Font):
         self._buildLayers()
         self._buildGlyphs()
         self._buildKerning()
+        self._buildFeatures()
         self._buildInfo()
 
     def __del__(self):
@@ -257,3 +260,19 @@ class SFDFont(Font):
                         assert self.groups[name1] == group1
                         assert self.groups[name2] == group2
                         self.kerning[name1, name2] = kern
+
+        # Delete the kern subtable so that we don’t export them to the feature
+        # file.
+        for subtable in subtables:
+            sfd.removeLookupSubtable(subtable)
+
+    def _buildFeatures(self):
+        if hasattr(self._sfd, "generateFeatureString"):
+            fea = self._sfd.generateFeatureString()
+        else:
+            from tempfile import NamedTemporaryFile
+            with NamedTemporaryFile() as feafile:
+                self._sfd.generateFeatureFile(feafile.name)
+                feafile.flush()
+                fea = feafile.read()
+        self.features.text = tounicode(fea)
