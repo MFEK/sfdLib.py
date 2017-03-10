@@ -62,19 +62,18 @@ class SFDFont(Font):
             setattr(self.info, ufoName, value)
 
     def _getVesrsion(self):
-        versionMajor = None
-        versionMinor = None
+        versionMajor = ""
+        versionMinor = ""
         if "." in self._sfd.version:
             versionMajor = self._sfd.version.split(".")[0]
             versionMinor = self._sfd.version.split(".")[1]
         else:
             versionMajor = self._sfd.version
-        if versionMajor and versionMajor.isdigit():
-            versionMajor = int(versionMajor)
-        if versionMinor and versionMinor.isdigit():
-            versionMinor = int(versionMinor)
 
-        return versionMajor or None, versionMinor or None
+        versionMajor = int(versionMajor) if versionMajor.isdigit() else None
+        versionMinor = int(versionMinor) if versionMinor.isdigit() else None
+
+        return versionMajor, versionMinor
 
     def _getFontBounds(self):
         """Calculate FF font bounds."""
