@@ -64,10 +64,14 @@ class SFDFont(Font):
     def _getVesrsion(self):
         versionMajor = ""
         versionMinor = ""
-        if "." in self._sfd.version:
-            versionMajor, versionMinor = self._sfd.version.split(".")
+        version = self._sfd.version
+        if ";" in version:
+            # Some fonts embed stuff after ";" in the version, strip it away.
+            version = version.split(";")[0]
+        if "." in version:
+            versionMajor, versionMinor = version.split(".", 1)
         else:
-            versionMajor = self._sfd.version
+            versionMajor = version
 
         versionMajor = int(versionMajor) if versionMajor.isdigit() else None
         versionMinor = int(versionMinor) if versionMinor.isdigit() else None
