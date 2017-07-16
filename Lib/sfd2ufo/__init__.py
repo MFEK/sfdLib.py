@@ -15,6 +15,7 @@ class SFDFont(Font):
         self._sfd = fontforge.open(path)
         self._layerMap = {}
         self._bounds = None
+        self._private = {}
 
         self._buildLayers()
         self._buildGlyphs()
@@ -60,6 +61,26 @@ class SFDFont(Font):
                 value = bb["yMin"] + value
 
             setattr(self.info, ufoName, value)
+
+    def _setPrivate(self, ufoName, sfdName):
+        if not self._private:
+            for k in self._sfd.private:
+                self._private[k] = self._sfd.private[k]
+
+            # UFO is stupid, Std[H|V]W is not explicitly encoded but should be
+            # derived from StemSnap[H|V], yet it has to be sorted so Std[H|V]W
+            # is not guaranteed to be the first value!
+            for k1, k2 in (("StemSnapH", "StdHW"), ("StemSnapV", "StdVW")):
+                if k1 in self._private and k2 in self._private:
+                    snap = list(self._private[k1])
+                    stdw = self._private[k2][0]
+                    if snap[0] != stdw:
+                        if stdw in snap:
+                            snap.pop(snap.index(stdw))
+                        self._private[k1] = [stdw] + snap
+
+        if sfdName in self._private:
+            setattr(self.info, ufoName, self._private[sfdName])
 
     def _getVesrsion(self):
         versionMajor = ""
@@ -162,6 +183,17 @@ class SFDFont(Font):
         self._setInfo("postscriptUniqueID", "uniqueid")
         self._setInfo("postscriptUnderlineThickness", "uwidth")
         self._setInfo("postscriptUnderlinePosition", "upos")
+
+        self._setPrivate("postscriptBlueValues", "BlueValues")
+        self._setPrivate("postscriptOtherBlues", "OtherBlues")
+        self._setPrivate("postscriptFamilyBlues", "FamilyBlues")
+        self._setPrivate("postscriptFamilyOtherBlues", "FamilyOtherBlues")
+        self._setPrivate("postscriptStemSnapH", "StemSnapH")
+        self._setPrivate("postscriptStemSnapV", "StemSnapV")
+        self._setPrivate("postscriptBlueFuzz", "BlueFuzz")
+        self._setPrivate("postscriptBlueShift", "BlueShift")
+        self._setPrivate("postscriptBlueScale", "BlueScale")
+        self._setPrivate("postscriptForceBold", "ForceBold")
 
         # Guidelines
         for c in self._sfd.guide:
