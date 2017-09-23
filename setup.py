@@ -9,16 +9,14 @@ setup(
         url = "https://github.com/khaledhosny/sfd2ufo",
     license = "OpenSource, BSD-style",
     platforms = ["Any"],
+
     packages = [
         "sfd2ufo",
     ],
-    package_dir = {'': 'Lib'},
-    install_requires=['defcon'],
-    entry_points={
-        "console_scripts": [
-            "sfd2ufo=sfd2ufo.cli:main"
-        ]
+    entry_points = {
+        'console_scripts': ['sfd2ufo = sfd2ufo.__main__:main'],
     },
+    package_dir = {'': 'Lib'},
     classifiers = [
         "Development Status :: 4 - Beta",
         "Environment :: Console",
