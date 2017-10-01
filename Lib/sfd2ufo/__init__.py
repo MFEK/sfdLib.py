@@ -228,13 +228,14 @@ class SFDFont(Font):
 
     def _buildGlyphs(self):
         for sfdGlyph in self._sfd.glyphs():
+            name = sfdGlyph.glyphname
             for sfdLayerName in sfdGlyph.layers:
                 sfdLayer = sfdGlyph.layers[sfdLayerName]
                 sfdLayerRefs = sfdGlyph.layerrefs[sfdLayerName]
                 layer = self._layerMap[sfdLayerName]
                 if not sfdLayer and not sfdLayerRefs and layer != self.layers.defaultLayer:
                     continue
-                glyph = layer.newGlyph(sfdGlyph.glyphname)
+                glyph = layer.newGlyph(name)
                 pen = glyph.getPen()
                 glyph.width = sfdGlyph.width
                 sfdLayer.draw(pen)
@@ -249,14 +250,15 @@ class SFDFont(Font):
                 if sfdGlyph.glyphclass != "automatic":
                     glyph.lib["org.fontforge.glyphclass"] = sfdGlyph.glyphclass
 
+            glyph = self[name]
+            glyph.unicodes = []
             if sfdGlyph.unicode > 0:
-                glyph = self[sfdGlyph.glyphname]
-                glyph.unicodes = [sfdGlyph.unicode]
-                if sfdGlyph.altuni:
-                    for altuni in sfdGlyph.altuni:
-                        # TODO: what about variation selectors?
-                        if altuni[1] == 0xfe00:
-                            glyph.unicodes.append(altuni[0])
+                glyph.unicodes.append(sfdGlyph.unicode)
+            if sfdGlyph.altuni:
+                for uni, uvs, _ in sfdGlyph.altuni:
+                    assert uvs == -1, "Glyph %s uses variation selector "      \
+                            "U+%04X, UFO doesn’t support this!" % (name, uvs)
+                    glyph.unicodes.append(uni)
 
             for anchor in sfdGlyph.anchorPoints:
                 name, kind, x, y = anchor[:4]
