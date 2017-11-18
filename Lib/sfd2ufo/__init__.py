@@ -251,14 +251,15 @@ class SFDFont(Font):
                     glyph.lib["org.fontforge.glyphclass"] = sfdGlyph.glyphclass
 
             glyph = self[name]
-            glyph.unicodes = []
+            unicodes = []
             if sfdGlyph.unicode > 0:
-                glyph.unicodes.append(sfdGlyph.unicode)
+                unicodes.append(sfdGlyph.unicode)
             if sfdGlyph.altuni:
                 for uni, uvs, _ in sfdGlyph.altuni:
                     assert uvs == -1, "Glyph %s uses variation selector "      \
                             "U+%04X, UFO doesn’t support this!" % (name, uvs)
-                    glyph.unicodes.append(uni)
+                    unicodes.append(uni)
+            glyph.unicodes = unicodes
 
             for anchor in sfdGlyph.anchorPoints:
                 name, kind, x, y = anchor[:4]
