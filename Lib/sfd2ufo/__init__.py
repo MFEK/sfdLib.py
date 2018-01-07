@@ -9,8 +9,10 @@ import math
 
 class SFDFont(Font):
 
-    def __init__(self, path):
+    def __init__(self, path, ignore_uvs=False):
         super(SFDFont, self).__init__()
+
+        self.ignore_uvs = ignore_uvs
 
         self._sfd = fontforge.open(path)
         self._layerMap = {}
@@ -256,7 +258,8 @@ class SFDFont(Font):
                 unicodes.append(sfdGlyph.unicode)
             if sfdGlyph.altuni:
                 for uni, uvs, _ in sfdGlyph.altuni:
-                    assert uvs == -1, "Glyph %s uses variation selector "      \
+                    if not self.ignore_uvs:
+                        assert uvs == -1, "Glyph %s uses variation selector "  \
                             "U+%04X, UFO doesn’t support this!" % (name, uvs)
                     unicodes.append(uni)
             glyph.unicodes = unicodes
