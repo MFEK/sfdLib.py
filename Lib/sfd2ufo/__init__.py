@@ -308,13 +308,38 @@ class SFDFont(Font):
 
         subtables = []
         for lookup in sfd.gpos_lookups:
+            lookpinfo = sfd.getLookupInfo(lookup)
             for subtable in sfd.getLookupSubtables(lookup):
                 if sfd.isKerningClass(subtable):
+                    # Class kerning.
                     groups1, groups2, kerns = sfd.getKerningClass(subtable)
                     subtables.append((groups1, groups2, kerns))
-                    # Delete the kern subtable so that we don’t export them to
+                    # Delete the kern subtable so that we don’t export it to
                     # the feature file.
                     sfd.removeLookupSubtable(subtable)
+                elif lookpinfo[0] == "gpos_pair":
+                    # Non-class kerning.
+                    for sfdGlyph in sfd.glyphs():
+                        name1 = sfdGlyph.glyphname
+                        unsupportedPair = False
+                        kerning = {}
+                        for pos in sfdGlyph.getPosSub(subtable):
+                            name2 = pos[2]
+                            x1, y1, xoff1, yoff1, x2, y2, xoff2, yoff2 = pos[3:]
+                            # UFO kerning is so dumb, so only export the
+                            # kerning that changes the x offset of the first
+                            # glyph only, otherwise let it be exported to the
+                            # feature file.
+                            if not all([x1, y1, yoff1, x2, y2, xoff2, yoff2]):
+                                kerning[name1, name2] = xoff1
+                            else:
+                                unsupportedPair = True
+
+                        if kerning and not unsupportedPair:
+                            self.kerning.update(kerning)
+                            # Delete the positioning so that we don’t export it
+                            # to the feature file.
+                            sfdGlyph.removePosSub(subtable)
 
         groups, kerning = self._classKerningToUFO(subtables)
         valid, _ = groupsValidator(groups)
