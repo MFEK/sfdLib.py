@@ -4,8 +4,11 @@
 from fontTools.misc.py23 import *
 
 from defcon import Font
+from ufoLib.validators import groupsValidator
 import fontforge
 import math
+
+FONTFORGE_PREFIX = "org.fontforge"
 
 class SFDFont(Font):
 
@@ -253,7 +256,7 @@ class SFDFont(Font):
                     a = 1.0
                     glyph.markColor = (r, g, b, a)
                 if sfdGlyph.glyphclass != "automatic":
-                    glyph.lib["org.fontforge.glyphclass"] = sfdGlyph.glyphclass
+                    glyph.lib[FONTFORGE_PREFIX + ".glyphclass"] = sfdGlyph.glyphclass
 
             glyph = self[name]
             unicodes = []
@@ -279,6 +282,27 @@ class SFDFont(Font):
 
                 glyph.appendAnchor(dict(name=name, x=x, y=y))
 
+    def _classKerningToUFO(self, subtables, prefix="public"):
+        groups = {}
+        kerning = {}
+
+        for i, (groups1, groups2, kerns) in enumerate(subtables):
+            for j, group1 in enumerate(groups1):
+                for k, group2 in enumerate(groups2):
+                    kern = kerns[(j * len(groups2)) + k]
+                    if group1 is not None and group2 is not None and kern != 0:
+                        name1 = "%s.kern1.kc%d_%d" % (prefix, i, j)
+                        name2 = "%s.kern2.kc%d_%d" % (prefix, i, k)
+                        if name1 not in groups:
+                            groups[name1] = group1
+                        if name2 not in groups:
+                            groups[name2] = group2
+                        assert groups[name1] == group1
+                        assert groups[name2] == group2
+                        kerning[name1, name2] = kern
+
+        return groups, kerning
+
     def _buildKerning(self):
         sfd = self._sfd
 
@@ -286,28 +310,26 @@ class SFDFont(Font):
         for lookup in sfd.gpos_lookups:
             for subtable in sfd.getLookupSubtables(lookup):
                 if sfd.isKerningClass(subtable):
-                    subtables.append(subtable)
+                    groups1, groups2, kerns = sfd.getKerningClass(subtable)
+                    subtables.append((groups1, groups2, kerns))
+                    # Delete the kern subtable so that we don’t export them to
+                    # the feature file.
+                    sfd.removeLookupSubtable(subtable)
 
-        for i, subtable in enumerate(subtables):
-            groups1, groups2, kerns = sfd.getKerningClass(subtable)
-            for j, group1 in enumerate(groups1):
-                for k, group2 in enumerate(groups2):
-                    kern = kerns[(j * len(groups2)) + k]
-                    if group1 is not None and group2 is not None and kern != 0:
-                        name1 = "public.kern1.kc%d_%d" % (i, j)
-                        name2 = "public.kern2.kc%d_%d" % (i, k)
-                        if name1 not in self.groups:
-                            self.groups[name1] = group1
-                        if name2 not in self.groups:
-                            self.groups[name2] = group2
-                        assert self.groups[name1] == group1
-                        assert self.groups[name2] == group2
-                        self.kerning[name1, name2] = kern
+        groups, kerning = self._classKerningToUFO(subtables)
+        valid, _ = groupsValidator(groups)
+        if not valid:
+            # If groupsValidator() thinks these groups are invalid, ufoLib will
+            # refuse to save the files. Most likely the cause is glyphs
+            # appearing in several kerning groups. Since UFO kerning is too
+            # dumb to represent this, lets cheat on ufoLib and use our private
+            # prefix for group names which would prevent it from attempting to
+            # “validate” them.
+            groups, kerning = self._classKerningToUFO(subtables,
+                prefix=FONTFORGE_PREFIX)
 
-        # Delete the kern subtable so that we don’t export them to the feature
-        # file.
-        for subtable in subtables:
-            sfd.removeLookupSubtable(subtable)
+        self.groups.update(groups)
+        self.kerning.update(kerning)
 
     def _buildFeatures(self):
         if hasattr(self._sfd, "generateFeatureString"):
