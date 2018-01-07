@@ -219,6 +219,8 @@ class SFDFont(Font):
                     x = p0.x
                     y = p0.y
                     angle = math.degrees(math.atan2(p1.x - p0.x, p1.y - p0.y))
+                    if angle < 0:
+                        angle = 360 + angle
                 self.info.appendGuideline({"x": x, "y": y, "name": name, "angle": angle})
 
     def _buildLayers(self):
