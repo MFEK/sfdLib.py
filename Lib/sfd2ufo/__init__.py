@@ -208,7 +208,8 @@ class SFDFont(Font):
 
                 p0 = c[0]
                 p1 = c[1]
-                name = c.name
+                if c.name is not None:
+                    name = tounicode(c.name, encoding="utf-8")
 
                 if p0.x == p1.x:
                     x = p0.x
