@@ -98,27 +98,24 @@ def parse(font, path):
             if version != 3.0:
                 raise Exception("Unsupported SFD version: %f" % version)
 
-        if key == "BeginChars":
-            break
-
         elif key == "FontName":
             info.postscriptFontName = value
         elif key == "FullName":
             info.postscriptFullName = value
         elif key == "FamilyName":
             info.familyName = value
-       #elif key == "DefaultBaseFilename":
-       #    info.XXX = value
-       #elif key == "Weight":
-       #    info.XXX = value
+        elif key == "DefaultBaseFilename":
+            pass # info.XXX = value
+        elif key == "Weight":
+            pass # info.XXX = value
         elif key == "Copyright":
             info.copyright = value
         elif key == "Comments":
             info.note = value
         elif key == "UComments":
             info.note = _sfdUTF7(value)
-       #elif key == "FontLog":
-       #    info.XXX = _sfdUTF7(value)
+        elif key == "FontLog":
+            pass # info.XXX = _sfdUTF7(value)
         elif key == "Version":
             info.versionMajor, info.versionMinor = parseVersion(value)
         elif key == "ItalicAngle":
@@ -131,44 +128,44 @@ def parse(font, path):
             info.ascender = float(value)
         elif key in ("Descent", "UFODescent"): # XXX
             info.descender = float(value)
-       #elif key == "sfntRevision":
-       #    info.XXX = int(value, 16)
-       #elif key == "WidthSeparation":
-       #    XXX = float(value) # auto spacing
+        elif key == "sfntRevision":
+            pass # info.XXX = int(value, 16)
+        elif key == "WidthSeparation":
+            pass # XXX = float(value) # auto spacing
         elif key == "LayerCount":
             layers = int(value) * [None]
         elif key == "Layer":
             m = LAYER_RE.match(value)
             idx = int(m.groups()[0])
-           #isQuadatic = bool(int(m.groups()[1]))
+           # XXX isQuadatic = bool(int(m.groups()[1]))
             name = _sfdUTF7(m.groups()[2])
             if idx == 1:
                 layers[idx] = font.layers.defaultLayer
             else:
                 layers[idx] = font.newLayer(name)
-       #elif key == "DisplayLayer":
-       #    XXX # default layer
-       #elif key == "DisplaySize":
-       #    XXX GUI
-       #elif key == "AntiAlias":
-       #    XXX GUI
-       #elif key == "FitToEm":
-       #    XXX GUI
-       #elif key == "WinInfo":
-       #    XXX GUI
-       #elif key == "Encoding":
-       #    encoding = value
+        elif key == "DisplayLayer":
+            pass # XXX default layer
+        elif key == "DisplaySize":
+            pass # XXX GUI
+        elif key == "AntiAlias":
+            pass # XXX GUI
+        elif key == "FitToEm":
+            pass # XXX GUI
+        elif key == "WinInfo":
+            pass # XXX GUI
+        elif key == "Encoding":
+            pass # XXX encoding = value
         elif key == "CreationTime":
             v = datetime.fromtimestamp(int(value))
             info.openTypeHeadCreated = v.strftime("%Y/%m/%d %H:%M:%S")
-       #elif key == "ModificationTime":
-       #    XXX
+        elif key == "ModificationTime":
+            pass # XXX
         elif key == "FSType":
             v = int(value)
             v = [bit for bit in range(16) if v & (1 << bit)]
             info.openTypeOS2Type = v
-       #elif key == "PfmFamily":
-       #    info.XXX = value
+        elif key == "PfmFamily":
+            pass # info.XXX = value
         elif key in ("TTFWeight", "PfmWeight"):
             info.openTypeOS2WeightClass = int(value)
         elif key == "TTFWidth":
@@ -191,18 +188,18 @@ def parse(font, path):
         elif key == "OS2FamilyClass":
             v = int(value)
             info.openTypeOS2FamilyClass = (v >> 8, v & 0xff)
-       #elif key == "OS2Version":
-       #    XXX
-       #elif key == "OS2_WeightWidthSlopeOnly":
-       #    info.XXX = bool(int(value))
+        elif key == "OS2Version":
+            pass # XXX
+        elif key == "OS2_WeightWidthSlopeOnly":
+            pass # info.XXX = bool(int(value))
         elif key == "OS2_UseTypoMetrics":
             if not info.openTypeOS2Selection:
                 info.openTypeOS2Selection = []
             info.openTypeOS2Selection += [7]
-       #elif key == "OS2CodePages":
-       #    XXX
-       #elif key == "OS2UnicodeRanges":
-       #    XXX
+        elif key == "OS2CodePages":
+            pass # XXX
+        elif key == "OS2UnicodeRanges":
+            pass # XXX
         elif key == "OS2TypoAscent":
             info.openTypeOS2TypoAscender = int(value)
         elif key == "OS2TypoDescent":
@@ -214,7 +211,7 @@ def parse(font, path):
         elif key in ("HheadAOffset", "HheadDOffset", "OS2TypoAOffset",
                      "OS2TypoDOffset", "OS2WinAOffset", "OS2WinDOffset"):
             v = bool(int(value))
-       #    assert not v, (key, value)
+       #    assert not v, (key, value) # XXX
         elif key == "OS2SubXSize":
             info.openTypeOS2SubscriptXSize = int(value)
         elif key == "OS2SubYSize":
@@ -235,6 +232,18 @@ def parse(font, path):
             info.openTypeOS2StrikeoutSize = int(value)
         elif key == "OS2StrikeYPos":
             info.openTypeOS2StrikeoutPosition = int(value)
+        elif key == "UniqueID":
+            pass # info.XXX = value
+        elif key == "XUID":
+            pass # XXX
+        elif key == "UnicodeInterp":
+            pass # XXX
+        elif key == "NameList":
+            pass # XXX
+        elif key == "DEI":
+            pass
+        elif key == "EndSplineFont":
+            break
         elif key == "BeginPrivate":
             section.append(value)
             end = "EndPrivate"
