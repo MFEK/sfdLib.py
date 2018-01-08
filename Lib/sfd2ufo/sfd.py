@@ -10,6 +10,13 @@ LAYER_RE = re.compile('(.)\s+(.)\s+(".*?.")\s+(.?)')
 QUOTED_LIST_RE = re.compile('(".*?")')
 
 
+def toFloat(value):
+    """Convert value to integer if possible, else to float."""
+    try:
+        return int(value)
+    except ValueError:
+        return float(value)
+
 _INBASE64 = [
     -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
     -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
@@ -132,9 +139,9 @@ def _parsePrivateDict(font, data):
         assert len(value) == int(n)
 
         if value.startswith("[") and value.endswith("]"):
-            value = [float(n) for n in value[1:-1].split(" ")]
+            value = [toFloat(n) for n in value[1:-1].split(" ")]
         else:
-            value = float(value)
+            value = toFloat(value)
 
         if   key == "BlueValues":
             info.postscriptBlueValues = value
@@ -247,7 +254,7 @@ def parse(font, path):
         if i == 0:
             if key != "SplineFontDB":
                 raise Exception("Not an SFD file.")
-            version = float(value)
+            version = toFloat(value)
             if version != 3.0:
                 raise Exception("Unsupported SFD version: %f" % version)
 
@@ -272,19 +279,19 @@ def parse(font, path):
         elif key == "Version":
             info.versionMajor, info.versionMinor = parseVersion(value)
         elif key == "ItalicAngle":
-            info.italicAngle = info.postscriptSlantAngle = float(value)
+            info.italicAngle = info.postscriptSlantAngle = toFloat(value)
         elif key == "UnderlinePosition":
-            info.postscriptUnderlinePosition = float(value)
+            info.postscriptUnderlinePosition = toFloat(value)
         elif key == "UnderlineWidth":
-            info.postscriptUnderlineThickness = float(value)
+            info.postscriptUnderlineThickness = toFloat(value)
         elif key in ("Ascent", "UFOAscent"): # XXX
-            info.ascender = float(value)
+            info.ascender = toFloat(value)
         elif key in ("Descent", "UFODescent"): # XXX
-            info.descender = float(value)
+            info.descender = toFloat(value)
         elif key == "sfntRevision":
             pass # info.XXX = int(value, 16)
         elif key == "WidthSeparation":
-            pass # XXX = float(value) # auto spacing
+            pass # XXX = toFloat(value) # auto spacing
         elif key == "LayerCount":
             layers = int(value) * [None]
         elif key == "Layer":
