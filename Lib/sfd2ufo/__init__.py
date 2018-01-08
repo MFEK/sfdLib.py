@@ -10,6 +10,22 @@ import math
 
 FONTFORGE_PREFIX = "org.fontforge"
 
+def parseVersion(version):
+    versionMajor = ""
+    versionMinor = ""
+    if ";" in version:
+        # Some fonts embed stuff after ";" in the version, strip it away.
+        version = version.split(";")[0]
+    if "." in version:
+        versionMajor, versionMinor = version.split(".", 1)
+    else:
+        versionMajor = version
+
+    versionMajor = int(versionMajor) if versionMajor.isdigit() else None
+    versionMinor = int(versionMinor) if versionMinor.isdigit() else None
+
+    return versionMajor, versionMinor
+
 class SFDFont(Font):
 
     def __init__(self, path, ignore_uvs=False):
@@ -87,23 +103,6 @@ class SFDFont(Font):
         if sfdName in self._private:
             setattr(self.info, ufoName, self._private[sfdName])
 
-    def _getVesrsion(self):
-        versionMajor = ""
-        versionMinor = ""
-        version = self._sfd.version
-        if ";" in version:
-            # Some fonts embed stuff after ";" in the version, strip it away.
-            version = version.split(";")[0]
-        if "." in version:
-            versionMajor, versionMinor = version.split(".", 1)
-        else:
-            versionMajor = version
-
-        versionMajor = int(versionMajor) if versionMajor.isdigit() else None
-        versionMinor = int(versionMinor) if versionMinor.isdigit() else None
-
-        return versionMajor, versionMinor
-
     def _getFontBounds(self):
         """Calculate FF font bounds."""
 
@@ -115,7 +114,7 @@ class SFDFont(Font):
 
         self._setInfo("familyName", "familyname")
         self._setInfoFromName("styleName", "SubFamily")
-        info.versionMajor, info.versionMinor = self._getVesrsion()
+        info.versionMajor, info.versionMinor = parseVersion(self._sfd.version)
 
         self._setInfo("copyright", "copyright")
         self._setInfoFromName("trademark", "Trademark")

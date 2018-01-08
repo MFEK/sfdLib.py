@@ -1,6 +1,10 @@
 import argparse
 
+from defcon import Font
+
 from . import SFDFont
+from . import sfd
+
 
 def main():
     parser = argparse.ArgumentParser(
@@ -12,7 +16,10 @@ def main():
 
     args = parser.parse_args()
 
-    font = SFDFont(args.sfdfile, args.ignore_uvs)
+    font = Font()
+    sfd.parse(font, args.sfdfile)
+
+#   font = SFDFont(args.sfdfile, args.ignore_uvs)
     font.save(args.ufofile)
 
 if __name__ == "__main__":
