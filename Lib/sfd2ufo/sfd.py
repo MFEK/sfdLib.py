@@ -125,6 +125,8 @@ def _parsePrivateDict(font, data):
     n = int(data.pop(0))
     assert len(data) == n
 
+    StdHW = StdVW = None
+
     for line in data:
         key, n, value = [v.strip() for v in line.split(" ", 2)]
         assert len(value) == int(n)
@@ -197,9 +199,12 @@ _NAMES = [
 def _parseNames(font, data):
     info = font.info
 
-    langId, data = data.split(" ", 1)
-    langId = int(langId)
-    data = QUOTED_LIST_RE.findall(data)
+    data = data.split(" ", 1)
+    if len(data) < 2:
+        return
+
+    langId = int(data[0])
+    data = QUOTED_LIST_RE.findall(data[1])
 
     for nameId, name in enumerate(data):
         name = _sfdUTF7(name)
@@ -381,7 +386,7 @@ def parse(font, path):
         elif key == "OS2StrikeYPos":
             info.openTypeOS2StrikeoutPosition = int(value)
         elif key == "UniqueID":
-            pass # info.XXX = value
+            info.postscriptUniqueID = int(value)
         elif key == "LangName":
             _parseNames(font, value)
         elif key == "XUID":
