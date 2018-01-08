@@ -287,7 +287,7 @@ def parse(font, path):
         elif key in ("Ascent", "UFOAscent"): # XXX
             info.ascender = toFloat(value)
         elif key in ("Descent", "UFODescent"): # XXX
-            info.descender = toFloat(value)
+            info.descender = -toFloat(value)
         elif key == "sfntRevision":
             pass # info.XXX = int(value, 16)
         elif key == "WidthSeparation":
