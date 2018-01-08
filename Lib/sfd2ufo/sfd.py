@@ -12,6 +12,55 @@ def _sfdUTF7(string):
     return string.strip('"').encode("ascii").decode("utf-7")
 
 
+def _parsePrivateDict(font, data):
+    info = font.info
+    n = int(data.pop(0))
+    assert len(data) == n
+
+    for line in data:
+        key, n, value = [v.strip() for v in line.split(" ", 2)]
+        assert len(value) == int(n)
+
+        if value.startswith("[") and value.endswith("]"):
+            value = [float(n) for n in value[1:-1].split(" ")]
+        else:
+            value = float(value)
+
+        if   key == "BlueValues":
+            info.postscriptBlueValues = value
+        elif key == "OtherBlues":
+            info.postscriptOtherBlues = value
+        elif key == "FamilyBlues":
+            info.postscriptFamilyBlues = value
+        elif key == "FamilyOtherBlues":
+            info.postscriptFamilyOtherBlues = value
+        elif key == "BlueFuzz":
+            info.postscriptBlueFuzz = value
+        elif key == "BlueShift":
+            info.postscriptBlueShift = value
+        elif key == "BlueScale":
+            info.postscriptBlueScale = value
+        elif key == "ForceBold":
+            info.postscriptForceBold = value
+        elif key == "StemSnapH":
+            info.postscriptStemSnapH = value
+        elif key == "StemSnapV":
+            info.postscriptStemSnapV = value
+        elif key == "StdHW":
+            StdHW = value[0]
+        elif key == "StdVW":
+            StdVW = value[0]
+
+    if StdHW:
+        if StdHW in info.postscriptStemSnapH:
+            info.postscriptStemSnapH.pop(info.postscriptStemSnapH.index(StdHW))
+        info.postscriptStemSnapH.insert(0, StdHW)
+    if StdVW:
+        if StdVW in info.postscriptStemSnapV:
+            info.postscriptStemSnapV.pop(info.postscriptStemSnapV.index(StdVW))
+        info.postscriptStemSnapV.insert(0, StdVW)
+
+
 def parse(font, path):
     isdir = os.path.isdir(path)
     if isdir:
@@ -28,13 +77,19 @@ def parse(font, path):
     info = font.info
     layers = []
 
+    end = None
+    section = []
+
     for i, line in enumerate(data):
         if ":" in line:
-            key, value = line.split(":", 1)
-            value = value.strip()
+            key, value = [v.strip() for v in line.split(":", 1)]
         else:
-            key = line
+            key = line.strip()
             value = None
+
+        if end is not None and key != end:
+            section.append(line)
+            continue
 
         if i == 0:
             if key != "SplineFontDB":
@@ -180,3 +235,10 @@ def parse(font, path):
             info.openTypeOS2StrikeoutSize = int(value)
         elif key == "OS2StrikeYPos":
             info.openTypeOS2StrikeoutPosition = int(value)
+        elif key == "BeginPrivate":
+            section.append(value)
+            end = "EndPrivate"
+        elif key == "EndPrivate":
+            _parsePrivateDict(font, section)
+            end = None
+            section = []
