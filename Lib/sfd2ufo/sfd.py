@@ -1,3 +1,4 @@
+import codecs
 import os
 import re
 
@@ -269,7 +270,8 @@ def parse(font, path):
         elif key == "Weight":
             pass # info.XXX = value
         elif key == "Copyright":
-            info.copyright = value
+            # Decode escape sequences.
+            info.copyright = codecs.escape_decode(value)[0].decode("utf-8")
         elif key == "Comments":
             info.note = value
         elif key == "UComments":
