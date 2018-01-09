@@ -268,7 +268,7 @@ def parse(font, path):
         elif key == "DefaultBaseFilename":
             pass # info.XXX = value
         elif key == "Weight":
-            pass # info.XXX = value
+            info.postscriptWeightName = value
         elif key == "Copyright":
             # Decode escape sequences.
             info.copyright = codecs.escape_decode(value)[0].decode("utf-8")
