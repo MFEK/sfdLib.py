@@ -222,6 +222,16 @@ def _parseNames(font, data):
                     setattr(info, _NAMES[nameId], name)
 
 
+def _getSction(data, value, i, end):
+    section = []
+    section.append(value)
+    while not data[i].startswith(end):
+        section.append(data[i])
+        i += 1
+
+    return section, i
+
+
 def parse(font, path):
     isdir = os.path.isdir(path)
     if isdir:
@@ -238,21 +248,18 @@ def parse(font, path):
     info = font.info
     layers = []
 
-    end = None
-    section = []
+    i = 0
+    while i < len(data):
+        line = data[i]
+        i += 1
 
-    for i, line in enumerate(data):
         if ":" in line:
             key, value = [v.strip() for v in line.split(":", 1)]
         else:
             key = line.strip()
             value = None
 
-        if end is not None and key != end:
-            section.append(line)
-            continue
-
-        if i == 0:
+        if i == 1:
             if key != "SplineFontDB":
                 raise Exception("Not an SFD file.")
             version = toFloat(value)
@@ -409,12 +416,8 @@ def parse(font, path):
         elif key == "EndSplineFont":
             break
         elif key == "BeginPrivate":
-            section.append(value)
-            end = "EndPrivate"
-        elif key == "EndPrivate":
+            section, i = _getSction(data, value, i, "EndPrivate")
             _parsePrivateDict(font, section)
-            end = None
-            section = []
 
     # FontForge does not have an explicit UPEM setting, it is the sum of its
     # ascender and descender.
