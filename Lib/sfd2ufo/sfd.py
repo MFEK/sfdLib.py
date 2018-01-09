@@ -178,6 +178,31 @@ def _parsePrivateDict(font, data):
             info.postscriptStemSnapV.pop(info.postscriptStemSnapV.index(StdVW))
         info.postscriptStemSnapV.insert(0, StdVW)
 
+
+def _parseGaspTable(font, data):
+    info = font.info
+
+    data = data.split(" ")
+    num = int(data.pop(0))
+    version = int(data.pop())
+    assert len(data) == num * 2
+    data = [data[j:j + 2] for j in range(0, len(data), 2)]
+
+    records = []
+    for ppem, flag in data:
+        ppem = int(ppem)
+        flag = int(flag)
+        flaglist = []
+        for j in range(3):
+            if flag & (1 << j):
+                flaglist.append(j)
+        records.append(dict(rangeMaxPPEM=ppem, rangeGaspBehavior=flaglist))
+
+    if records:
+        info.openTypeGaspRangeRecords = records
+
+
+
 _NAMES = [
     "copyright",
     None, # styleMapFamily
@@ -405,6 +430,8 @@ def parse(font, path):
             info.postscriptUniqueID = int(value)
         elif key == "LangName":
             _parseNames(font, value)
+        elif key == "GaspTable":
+            _parseGaspTable(font, value)
         elif key == "XUID":
             pass # XXX
         elif key == "UnicodeInterp":
