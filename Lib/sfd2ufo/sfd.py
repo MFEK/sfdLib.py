@@ -284,9 +284,9 @@ def parse(font, path):
             info.postscriptUnderlinePosition = toFloat(value)
         elif key == "UnderlineWidth":
             info.postscriptUnderlineThickness = toFloat(value)
-        elif key in ("Ascent", "UFOAscent"): # XXX
+        elif key in "Ascent":
             info.ascender = toFloat(value)
-        elif key in ("Descent", "UFODescent"): # XXX
+        elif key in "Descent":
             info.descender = -toFloat(value)
         elif key == "sfntRevision":
             pass # info.XXX = int(value, 16)
@@ -413,3 +413,7 @@ def parse(font, path):
             _parsePrivateDict(font, section)
             end = None
             section = []
+
+    # FontForge does not have an explicit UPEM setting, it is the sum of its
+    # ascender and descender.
+    info.unitsPerEm = info.ascender - info.descender
