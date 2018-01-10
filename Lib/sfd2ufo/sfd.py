@@ -15,6 +15,7 @@ from . import FONTFORGE_PREFIX
 
 LAYER_RE = re.compile('(.)\s+(.)\s+(".*?.")\s+(.?)')
 QUOTED_LIST_RE = re.compile('(".*?")')
+GLYPH_COMMAND_RE = re.compile('(\s[lmc]\s)')
 
 
 def toFloat(value):
@@ -270,9 +271,41 @@ def _getSction(data, value, i, end):
 def _parseSplineSet(glyph, data):
     data.pop(0)
 
-    for line in data:
-        pass
-       #print(line)
+    contours = []
+
+    i = 0
+    while i < len(data):
+        line = data[i]
+        i += 1
+
+        if line == "Spiro":
+            spiro, i = _getSction(data, line, i, "EndSpiro")
+            i += 1
+        else:
+            points, command, flags = [c.strip() for c in GLYPH_COMMAND_RE.split(line)]
+            points = [toFloat(c) for c in points.split(" ")]
+            points = [points[j:j + 2] for j in range(0, len(points), 2)]
+            if   command == "m":
+                assert len(points) == 1
+                contours.append([(command, points, flags)])
+            elif command == "l":
+                assert len(points) == 1
+                contours[-1].append((command, points, flags))
+            elif command == "c":
+                assert len(points) == 3
+                contours[-1].append((command, points, flags))
+
+    if contours:
+        pen = glyph.getPen()
+        for contour in contours:
+            for command, points, flags in contour:
+                if   command == "m":
+                    pen.moveTo(*points)
+                elif command == "l":
+                    pen.lineTo(*points)
+                else:
+                    pen.curveTo(*points)
+            pen.closePath()
 
 
 def _parseImage(glyph, data):
