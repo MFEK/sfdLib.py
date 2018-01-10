@@ -1,3 +1,5 @@
+from fontTools.misc.py23 import *
+
 import codecs
 import os
 import re
@@ -116,11 +118,11 @@ def _SFDReadUTF7(data):
                 done = True
 
         if done:
-            out += chr(ch1).encode()
+            out += unichr(ch1).encode("utf-8")
         if prev_cnt == 2:
             prev_cnt = 0
             if prev != 0:
-                out += chr(prev).encode()
+                out += unichr(prev).encode("utf-8")
 
     return out.decode("utf-8")
 
