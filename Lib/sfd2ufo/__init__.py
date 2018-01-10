@@ -51,6 +51,15 @@ def parseAnchorPoint(anchor):
 
     return dict(name=name, x=x, y=y)
 
+
+def parseColor(color):
+    r = (color & 255) / 255.
+    g = ((color >> 8) & 255) / 255.
+    b = ((color >> 16) & 255) / 255.
+    a = 1.0
+    return (r, g, b, a)
+
+
 class SFDFont(Font):
 
     def __init__(self, path, ignore_uvs=False):
@@ -274,11 +283,7 @@ class SFDFont(Font):
                 for ref in sfdLayerRefs:
                     pen.addComponent(ref[0], ref[1])
                 if sfdGlyph.color >= 0:
-                    r = (sfdGlyph.color & 255) / 255.
-                    g = ((sfdGlyph.color >> 8) & 255) / 255.
-                    b = ((sfdGlyph.color >> 16) & 255) / 255.
-                    a = 1.0
-                    glyph.markColor = (r, g, b, a)
+                    glyph.markColor = parseColor(sfdGlyph.color)
                 if sfdGlyph.glyphclass != "automatic":
                     glyph.lib[FONTFORGE_PREFIX + ".glyphclass"] = sfdGlyph.glyphclass
 

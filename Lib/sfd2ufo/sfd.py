@@ -1,3 +1,6 @@
+#
+# encoding: utf-8
+
 from fontTools.misc.py23 import *
 
 import codecs
@@ -6,7 +9,7 @@ import re
 
 from datetime import datetime
 
-from . import parseAltuni, parseAnchorPoint, parseVersion
+from . import parseAltuni, parseAnchorPoint, parseColor, parseVersion
 from . import FONTFORGE_PREFIX
 
 
@@ -253,7 +256,11 @@ def _parseNames(font, data):
 def _getSction(data, value, i, end):
     section = []
     section.append(value)
-    while not data[i].startswith(end):
+
+    if not isinstance(end, (list, tuple)):
+        end = [end]
+
+    while i < len(data) and data[i].split(":")[0].strip() not in end:
         section.append(data[i])
         i += 1
 
@@ -261,13 +268,69 @@ def _getSction(data, value, i, end):
 
 
 def _parseSplineSet(glyph, data):
-    layer = data.pop(0)
-    if layer != "Fore":
-        return
+    data.pop(0)
 
     for line in data:
         pass
        #print(line)
+
+
+def _parseImage(glyph, data):
+    pass
+
+
+LAYER_KEYWORDS = ["Fore", "Back", "Layer"]
+
+def _parseLayer(glyph, data):
+    font = glyph.font
+    name = glyph.name
+    width = glyph.width
+
+    layer = data.pop(0)
+    if layer == "Fore":
+        layer = font.layers.defaultLayer
+    elif layer == "Back":
+        layer = font.XXXlayerMap[0]
+    else:
+        layer = font.XXXlayerMap[int(layer.split(": ")[1])]
+
+    if glyph.name not in layer:
+        glyph = layer.newGlyph(name)
+        glyph.width = width
+    else:
+        glyph = layer[name]
+
+    refs = []
+
+    i = 0
+    while i < len(data):
+        line = data[i]
+        i += 1
+
+        if ": " in line:
+            key, value = line.split(": ", 1)
+        else:
+            key = line
+            value = None
+
+        if   key == "SplineSet":
+            splines, i = _getSction(data, value, i, "EndSplineSet")
+            _parseSplineSet(glyph, splines)
+        elif key == "Image":
+            image, i = _getSction(data, value, i, "EndImage")
+            _parseImage(glyph, image)
+        elif key == "Colour":
+            glyph.markColor = parseColor(int(value, 16))
+        elif key == "Refer":
+            # Just collect the refs here, we can’t insert them until all the
+            # glyphs are parsed since FontForge uses glyph indices not names.
+            # The calling code will process the references at the end.
+            refs.append(value)
+
+       #elif value is not None:
+       #    print(key, value)
+
+    return glyph, refs
 
 
 def _parseAnchorPoint(glyph, data):
@@ -295,11 +358,12 @@ GLYPH_CLASSES = [
 ]
 
 def _parseChar(font, data):
-    _, glyphname = data.pop(0).split(": ")
-    if glyphname.startswith('"'):
-        glyphname = _sfdUTF7(glyphname)
+    _, name = data.pop(0).split(": ")
+    if name.startswith('"'):
+        name = _sfdUTF7(name)
 
-    glyph = font.newGlyph(glyphname)
+    glyph = font.newGlyph(name)
+    refs = {}
     unicodes = []
 
     i = 0
@@ -318,7 +382,7 @@ def _parseChar(font, data):
         elif key == "VWidth":
             glyph.height = int(value)
         elif key == "Encoding":
-            enc, uni, orig = [int(v) for v in value.split()]
+            enc, uni, order = [int(v) for v in value.split()]
             if uni >= 0:
                 unicodes.append(uni)
         elif key == "AltUni2":
@@ -330,17 +394,40 @@ def _parseChar(font, data):
             glyph.lib[FONTFORGE_PREFIX + ".glyphclass"] = glyphclass
         elif key == "AnchorPoint":
             _parseAnchorPoint(glyph, value)
-        elif key == "SplineSet":
-            splines, i = _getSction(data, data[i - 2], i, "EndSplineSet")
-            _parseSplineSet(glyph, splines)
+        elif key in LAYER_KEYWORDS:
+            layer, i = _getSction(data, line, i, LAYER_KEYWORDS + ["EndChar"])
+            layerglyph, layerrefs = _parseLayer(glyph, layer)
+            refs[layerglyph] = layerrefs
+        elif key == "Comment":
+            glyph.note = _sfdUTF7(value)
+        elif key == "Flags":
+            pass # XXX
+        elif key == "LayerCount":
+            pass # XXX
 
        #elif value is not None:
        #    print(key, value)
 
     glyph.unicodes = unicodes
 
+    return glyph, order, refs
+
+
+def _processReferences(font, references):
+    for glyph, refs in references.items():
+        pen = glyph.getPen()
+
+        for ref in refs:
+            ref = ref.split()
+            name = font.glyphOrder[int(ref[0])]
+            matrix = [toFloat(v) for v in ref[3:9]]
+            pen.addComponent(name, matrix)
+
 
 def _parseChars(font, data):
+    glyphOrderMap = {}
+    references = {}
+
     data = [l.strip() for l in data if l.strip()]
 
     i = 0
@@ -350,7 +437,18 @@ def _parseChars(font, data):
 
         if line.startswith("StartChar"):
             char, i = _getSction(data, line, i, "EndChar")
-            _parseChar(font, char)
+            glyph, order, refs = _parseChar(font, char)
+            glyphOrderMap[glyph.name] = order
+            references.update(refs)
+
+    # Change the glyph order to match FontForge’s, we need this for processing
+    # the references below.
+    assert len(font.glyphOrder) == len(glyphOrderMap)
+    font.glyphOrder = sorted(glyphOrderMap, key=glyphOrderMap.get)
+
+    # We can’t insert the references while parsing the glyphs since FontForge
+    # uses glyph indices so we need to know the glyph order first.
+    _processReferences(font, references)
 
 
 def parse(font, path):
@@ -367,7 +465,6 @@ def parse(font, path):
             data = fd.readlines()
 
     info = font.info
-    layers = []
 
     i = 0
     while i < len(data):
@@ -423,16 +520,16 @@ def parse(font, path):
         elif key == "WidthSeparation":
             pass # XXX = toFloat(value) # auto spacing
         elif key == "LayerCount":
-            layers = int(value) * [None]
+            font.XXXlayerMap = int(value) * [None]
         elif key == "Layer":
             m = LAYER_RE.match(value)
             idx = int(m.groups()[0])
            # XXX isQuadatic = bool(int(m.groups()[1]))
             name = _sfdUTF7(m.groups()[2])
             if idx == 1:
-                layers[idx] = font.layers.defaultLayer
+                font.XXXlayerMap[idx] = font.layers.defaultLayer
             else:
-                layers[idx] = font.newLayer(name)
+                font.XXXlayerMap[idx] = font.newLayer(name)
         elif key == "DisplayLayer":
             pass # XXX default layer
         elif key == "DisplaySize":
@@ -545,7 +642,8 @@ def parse(font, path):
             chars, i = _getSction(data, value, i, "EndChars")
             chars.pop(0)
             _parseChars(font, chars)
-       #else:
+
+       #elif value is not None:
        #    print(key, value)
 
     if isdir:
