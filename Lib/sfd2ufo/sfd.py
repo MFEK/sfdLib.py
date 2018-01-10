@@ -4,7 +4,8 @@ import re
 
 from datetime import datetime
 
-from . import parseVersion
+from . import parseAltuni, parseAnchorPoint, parseVersion
+from . import FONTFORGE_PREFIX
 
 
 LAYER_RE = re.compile('(.)\s+(.)\s+(".*?.")\s+(.?)')
@@ -257,6 +258,99 @@ def _getSction(data, value, i, end):
     return section, i
 
 
+def _parseSplineSet(glyph, data):
+    layer = data.pop(0)
+    if layer != "Fore":
+        return
+
+    for line in data:
+        pass
+       #print(line)
+
+
+def _parseAnchorPoint(glyph, data):
+    _, name, attrs =  QUOTED_LIST_RE.split(data)
+    name = _sfdUTF7(name)
+
+    attrs = attrs.strip().split(" ")
+    assert len(attrs) == 4
+
+    x = toFloat(attrs[0])
+    y = toFloat(attrs[1])
+    kind = attrs[2]
+    index = int(attrs[3])
+
+    glyph.appendAnchor(parseAnchorPoint([name, kind, x, y, index]))
+
+
+GLYPH_CLASSES = [
+    "automatic",
+    "noclass",
+    "baseglyph",
+    "baseligature",
+    "mark",
+    "component",
+]
+
+def _parseChar(font, data):
+    _, glyphname = data.pop(0).split(": ")
+    if glyphname.startswith('"'):
+        glyphname = _sfdUTF7(glyphname)
+
+    glyph = font.newGlyph(glyphname)
+    unicodes = []
+
+    i = 0
+    while i < len(data):
+        line = data[i]
+        i += 1
+
+        if ": " in line:
+            key, value = line.split(": ", 1)
+        else:
+            key = line
+            value = None
+
+        if   key == "Width":
+            glyph.width = int(value)
+        elif key == "VWidth":
+            glyph.height = int(value)
+        elif key == "Encoding":
+            enc, uni, orig = [int(v) for v in value.split()]
+            if uni >= 0:
+                unicodes.append(uni)
+        elif key == "AltUni2":
+            altuni = [int(v, 16) for v in value.split(".")]
+            altuni = [altuni[j:j + 3] for j in range(0, len(altuni), 3)]
+            unicodes += parseAltuni(altuni, True) # XXX
+        elif key == "GlyphClass":
+            glyphclass = GLYPH_CLASSES[int(value)]
+            glyph.lib[FONTFORGE_PREFIX + ".glyphclass"] = glyphclass
+        elif key == "AnchorPoint":
+            _parseAnchorPoint(glyph, value)
+        elif key == "SplineSet":
+            splines, i = _getSction(data, data[i - 2], i, "EndSplineSet")
+            _parseSplineSet(glyph, splines)
+
+       #elif value is not None:
+       #    print(key, value)
+
+    glyph.unicodes = unicodes
+
+
+def _parseChars(font, data):
+    data = [l.strip() for l in data if l.strip()]
+
+    i = 0
+    while i < len(data):
+        line = data[i]
+        i += 1
+
+        if line.startswith("StartChar"):
+            char, i = _getSction(data, line, i, "EndChar")
+            _parseChar(font, char)
+
+
 def parse(font, path):
     isdir = os.path.isdir(path)
     if isdir:
@@ -445,6 +539,20 @@ def parse(font, path):
         elif key == "BeginPrivate":
             section, i = _getSction(data, value, i, "EndPrivate")
             _parsePrivateDict(font, section)
+        elif key == "BeginChars":
+            chars, i = _getSction(data, value, i, "EndChars")
+            chars.pop(0)
+            _parseChars(font, chars)
+       #else:
+       #    print(key, value)
+
+    if isdir:
+        import glob
+        chars = []
+        for filename in glob.iglob(os.path.join(path, '*.glyph')):
+            with open(filename) as fp:
+                chars += fp.readlines()
+        _parseChars(font, chars)
 
     # FontForge does not have an explicit UPEM setting, it is the sum of its
     # ascender and descender.

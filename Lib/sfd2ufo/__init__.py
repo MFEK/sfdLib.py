@@ -26,6 +26,31 @@ def parseVersion(version):
 
     return versionMajor, versionMinor
 
+
+def parseAltuni(altuni, ignore_uvs):
+    unicodes = []
+    for uni, uvs, _ in altuni:
+        if not ignore_uvs:
+            assert uvs == -1, "Glyph %s uses variation selector "  \
+                "U+%04X, UFO doesn’t support this!" % (name, uvs)
+        if uvs in (-1, 0xffffffff):
+            unicodes.append(uni)
+
+    return unicodes
+
+
+def parseAnchorPoint(anchor):
+    name, kind, x, y = anchor[:4]
+    if kind == "mark":
+        name = "_" + name
+    elif kind == "ligature":
+        index = anchor[4]
+        name = "%s_%s" % (name, index)
+    elif kind in ["entry", "exit"]:
+        name = "%s_%s" % (name, kind)
+
+    return dict(name=name, x=x, y=y)
+
 class SFDFont(Font):
 
     def __init__(self, path, ignore_uvs=False):
@@ -262,24 +287,11 @@ class SFDFont(Font):
             if sfdGlyph.unicode > 0:
                 unicodes.append(sfdGlyph.unicode)
             if sfdGlyph.altuni:
-                for uni, uvs, _ in sfdGlyph.altuni:
-                    if not self.ignore_uvs:
-                        assert uvs == -1, "Glyph %s uses variation selector "  \
-                            "U+%04X, UFO doesn’t support this!" % (name, uvs)
-                    unicodes.append(uni)
+                unicodes += parseAltuni(sfdGlyph.altuni, self.ignore_uvs)
             glyph.unicodes = unicodes
 
             for anchor in sfdGlyph.anchorPoints:
-                name, kind, x, y = anchor[:4]
-                if kind == "mark":
-                    name = "_" + name
-                elif kind == "ligature":
-                    index = anchor[4]
-                    name = "%s_%s" % (name, index)
-                elif kind in ["entry", "exit"]:
-                    name = "%s_%s" % (name, kind)
-
-                glyph.appendAnchor(dict(name=name, x=x, y=y))
+                glyph.appendAnchor(parseAnchorPoint(anchor))
 
     def _classKerningToUFO(self, subtables, prefix="public"):
         groups = {}
