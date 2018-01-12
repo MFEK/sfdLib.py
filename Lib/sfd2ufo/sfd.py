@@ -47,6 +47,8 @@ _INBASE64 = [
 def _SFDReadUTF7(data):
     out = b""
 
+    data = data.strip('"').encode("ascii")
+
     if data and not isinstance(data[0], int): # Python 2
         data = [ord(c) for c in data]
 
@@ -129,10 +131,6 @@ def _SFDReadUTF7(data):
                 out += unichr(prev).encode("utf-8")
 
     return out.decode("utf-8")
-
-
-def _sfdUTF7(string):
-    return _SFDReadUTF7(string.strip('"').encode("ascii"))#.decode("utf-7")
 
 
 def _parsePrivateDict(font, data):
@@ -247,7 +245,7 @@ def _parseNames(font, data):
     data = QUOTED_LIST_RE.findall(data[1])
 
     for nameId, name in enumerate(data):
-        name = _sfdUTF7(name)
+        name = _SFDReadUTF7(name)
         if name:
             if langId == 1033: # English (United States)
                 if _NAMES[nameId]:
@@ -368,7 +366,7 @@ def _parseLayer(glyph, data):
 
 def _parseAnchorPoint(glyph, data):
     _, name, attrs =  QUOTED_LIST_RE.split(data)
-    name = _sfdUTF7(name)
+    name = _SFDReadUTF7(name)
 
     attrs = attrs.strip().split(" ")
     assert len(attrs) == 4
@@ -393,7 +391,7 @@ GLYPH_CLASSES = [
 def _parseChar(font, data):
     _, name = data.pop(0).split(": ")
     if name.startswith('"'):
-        name = _sfdUTF7(name)
+        name = _SFDReadUTF7(name)
 
     glyph = font.newGlyph(name)
     refs = {}
@@ -432,7 +430,7 @@ def _parseChar(font, data):
             layerglyph, layerrefs = _parseLayer(glyph, layer)
             refs[layerglyph] = layerrefs
         elif key == "Comment":
-            glyph.note = _sfdUTF7(value)
+            glyph.note = _SFDReadUTF7(value)
         elif key == "Flags":
             pass # XXX
         elif key == "LayerCount":
@@ -533,9 +531,9 @@ def parse(font, path):
         elif key == "Comments":
             info.note = value
         elif key == "UComments":
-            info.note = _sfdUTF7(value)
+            info.note = _SFDReadUTF7(value)
         elif key == "FontLog":
-            pass # info.XXX = _sfdUTF7(value)
+            pass # info.XXX = _SFDReadUTF7(value)
         elif key == "Version":
             info.versionMajor, info.versionMinor = parseVersion(value)
         elif key == "ItalicAngle":
@@ -558,7 +556,7 @@ def parse(font, path):
             m = LAYER_RE.match(value)
             idx = int(m.groups()[0])
            # XXX isQuadatic = bool(int(m.groups()[1]))
-            name = _sfdUTF7(m.groups()[2])
+            name = _SFDReadUTF7(m.groups()[2])
             if idx == 1:
                 font.XXXlayerMap[idx] = font.layers.defaultLayer
             else:
