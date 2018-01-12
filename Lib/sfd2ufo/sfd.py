@@ -44,7 +44,7 @@ _INBASE64 = [
     -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
 ]
 
-def _SFDReadUTF7(data):
+def SFDReadUTF7(data):
     out = b""
 
     data = data.strip('"').encode("ascii")
@@ -248,7 +248,7 @@ class SFDParser():
         data = QUOTED_LIST_RE.findall(data[1])
 
         for nameId, name in enumerate(data):
-            name = _SFDReadUTF7(name)
+            name = SFDReadUTF7(name)
             if name:
                 if langId == 1033: # English (United States)
                     if self._NAMES[nameId]:
@@ -364,7 +364,7 @@ class SFDParser():
 
     def _parseAnchorPoint(self, glyph, data):
         _, name, attrs =  QUOTED_LIST_RE.split(data)
-        name = _SFDReadUTF7(name)
+        name = SFDReadUTF7(name)
 
         attrs = attrs.strip().split(" ")
         assert len(attrs) == 4
@@ -389,7 +389,7 @@ class SFDParser():
     def _parseChar(self, data):
         _, name = data.pop(0).split(": ")
         if name.startswith('"'):
-            name = _SFDReadUTF7(name)
+            name = SFDReadUTF7(name)
 
         glyph = self._font.newGlyph(name)
         refs = {}
@@ -429,7 +429,7 @@ class SFDParser():
                 layerglyph, layerrefs = self._parseLayer(glyph, layer)
                 refs[layerglyph] = layerrefs
             elif key == "Comment":
-                glyph.note = _SFDReadUTF7(value)
+                glyph.note = SFDReadUTF7(value)
             elif key == "Flags":
                 pass # XXX
             elif key == "LayerCount":
@@ -529,9 +529,9 @@ class SFDParser():
             elif key == "Comments":
                 info.note = value
             elif key == "UComments":
-                info.note = _SFDReadUTF7(value)
+                info.note = SFDReadUTF7(value)
             elif key == "FontLog":
-                pass # info.XXX = _SFDReadUTF7(value)
+                pass # info.XXX = SFDReadUTF7(value)
             elif key == "Version":
                 info.versionMajor, info.versionMinor = parseVersion(value)
             elif key == "ItalicAngle":
@@ -554,7 +554,7 @@ class SFDParser():
                 m = LAYER_RE.match(value)
                 idx = int(m.groups()[0])
                # XXX isQuadatic = bool(int(m.groups()[1]))
-                name = _SFDReadUTF7(m.groups()[2])
+                name = SFDReadUTF7(m.groups()[2])
                 if idx == 1:
                     font.XXXlayerMap[idx] = font.layers.defaultLayer
                 else:
