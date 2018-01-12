@@ -13,9 +13,10 @@ from . import parseAltuni, parseAnchorPoint, parseColor, parseVersion
 from . import FONTFORGE_PREFIX
 
 
-LAYER_RE = re.compile('(.)\s+(.)\s+(".*?.")\s+(.?)')
 QUOTED_LIST_RE = re.compile('(".*?")')
+LAYER_RE = re.compile("(.)\s+(.)\s+" + QUOTED_LIST_RE.pattern + "\s+(.?)")
 GLYPH_COMMAND_RE = re.compile('(\s[lmc]\s)')
+KERNS_RE = re.compile("(-?\d+)\s+(-?\d+)\s+" + QUOTED_LIST_RE.pattern)
 
 
 def toFloat(value):
@@ -141,6 +142,7 @@ class SFDParser():
         self._layers = []
         self._layerType = []
         self._glyphRefs = {}
+        self._glyphKerns = {}
 
     def _parsePrivateDict(self, data):
         info = self._font.info
@@ -315,6 +317,16 @@ class SFDParser():
     def _parseImage(self, glyph, data):
         pass
 
+    def _parseKerns(self, glyph, data):
+        assert glyph.name not in self._glyphKerns
+        kerns = KERNS_RE.findall(data)
+        assert kerns
+        self._glyphKerns[glyph.name] = []
+        for (gid, kern, subtable) in kerns:
+            gid = int(gid)
+            kern = toFloat(kern)
+            self._glyphKerns[glyph.name].append((gid, kern))
+
     _LAYER_KEYWORDS = ["Back", "Fore", "Layer"]
 
     def _parseCharLayer(self, glyph, data):
@@ -364,6 +376,10 @@ class SFDParser():
                 if glyph not in self._glyphRefs:
                     self._glyphRefs[glyph] = []
                 self._glyphRefs[glyph].append(value)
+            elif key == "Kerns2":
+                # Technically kerns don’t belong to the layer, but the way we
+                # parse layers can lead us to seeing them here.
+                self._parseKerns(glyph, value)
 
            #elif value is not None:
            #    print(key, value)
@@ -434,6 +450,8 @@ class SFDParser():
                 layer, i = self._getSection(data, i,
                     self._LAYER_KEYWORDS + ["EndChar"], line)
                 layerglyph = self._parseCharLayer(glyph, layer)
+            elif key == "Kerns2":
+                self._parseKerns(glyph, value)
             elif key == "Comment":
                 glyph.note = SFDReadUTF7(value)
             elif key == "Flags":
@@ -457,6 +475,12 @@ class SFDParser():
                 name = self._font.glyphOrder[int(ref[0])]
                 matrix = [toFloat(v) for v in ref[3:9]]
                 pen.addComponent(name, matrix)
+
+    def _processKerns(self):
+        for name1 in self._glyphKerns:
+            for gid2, kern in self._glyphKerns[name1]:
+                name2 = self._font.glyphOrder[gid2]
+                self._font.kerning[name1, name2] = kern
 
     def _parseChars(self, data):
         font = self._font
@@ -700,6 +724,9 @@ class SFDParser():
         # FontForge uses glyph indices so we need to know the glyph order
         # first.
         self._processReferences()
+
+        # Same for kerning.
+        self._processKerns()
 
         # FontForge does not have an explicit UPEM setting, it is the sum of its
         # ascender and descender.
