@@ -384,8 +384,6 @@ class SFDParser():
            #elif value is not None:
            #    print(key, value)
 
-        return glyph
-
     def _parseAnchorPoint(self, glyph, data):
         _, name, attrs =  QUOTED_LIST_RE.split(data)
         name = SFDReadUTF7(name)
@@ -449,7 +447,7 @@ class SFDParser():
             elif key in self._LAYER_KEYWORDS:
                 layer, i = self._getSection(data, i,
                     self._LAYER_KEYWORDS + ["EndChar"], line)
-                layerglyph = self._parseCharLayer(glyph, layer)
+                self._parseCharLayer(glyph, layer)
             elif key == "Kerns2":
                 self._parseKerns(glyph, value)
             elif key == "Comment":
