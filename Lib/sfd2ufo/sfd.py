@@ -139,6 +139,7 @@ class SFDParser():
         self._path = path
         self._font = font
         self._layerMap = []
+        self._glyphRefs = {}
 
     def _parsePrivateDict(self, data):
         info = self._font.info
@@ -356,12 +357,14 @@ class SFDParser():
                 # Just collect the refs here, we can’t insert them until all the
                 # glyphs are parsed since FontForge uses glyph indices not names.
                 # The calling code will process the references at the end.
-                refs.append(value)
+                if glyph not in self._glyphRefs:
+                    self._glyphRefs[glyph] = []
+                self._glyphRefs[glyph].append(value)
 
            #elif value is not None:
            #    print(key, value)
 
-        return glyph, refs
+        return glyph
 
     def _parseAnchorPoint(self, glyph, data):
         _, name, attrs =  QUOTED_LIST_RE.split(data)
@@ -393,7 +396,6 @@ class SFDParser():
             name = SFDReadUTF7(name)
 
         glyph = self._font.newGlyph(name)
-        refs = {}
         unicodes = []
 
         i = 0
@@ -427,8 +429,7 @@ class SFDParser():
             elif key in self._LAYER_KEYWORDS:
                 layer, i = self._getSction(data, line, i,
                     self._LAYER_KEYWORDS + ["EndChar"])
-                layerglyph, layerrefs = self._parseLayer(glyph, layer)
-                refs[layerglyph] = layerrefs
+                layerglyph = self._parseLayer(glyph, layer)
             elif key == "Comment":
                 glyph.note = SFDReadUTF7(value)
             elif key == "Flags":
@@ -441,10 +442,10 @@ class SFDParser():
 
         glyph.unicodes = unicodes
 
-        return glyph, order, refs
+        return glyph, order
 
-    def _processReferences(self, references):
-        for glyph, refs in references.items():
+    def _processReferences(self):
+        for glyph, refs in self._glyphRefs.items():
             pen = glyph.getPen()
 
             for ref in refs:
@@ -456,7 +457,6 @@ class SFDParser():
     def _parseChars(self, data):
         font = self._font
         glyphOrderMap = {}
-        references = {}
 
         data = [l.strip() for l in data if l.strip()]
 
@@ -467,18 +467,13 @@ class SFDParser():
 
             if line.startswith("StartChar"):
                 char, i = self._getSction(data, line, i, "EndChar")
-                glyph, order, refs = self._parseChar(char)
+                glyph, order = self._parseChar(char)
                 glyphOrderMap[glyph.name] = order
-                references.update(refs)
 
         # Change the glyph order to match FontForge’s, we need this for processing
         # the references below.
         assert len(font.glyphOrder) == len(glyphOrderMap)
         font.glyphOrder = sorted(glyphOrderMap, key=glyphOrderMap.get)
-
-        # We can’t insert the references while parsing the glyphs since FontForge
-        # uses glyph indices so we need to know the glyph order first.
-        self._processReferences(references)
 
     def parse(self):
         isdir = os.path.isdir(self._path)
@@ -495,6 +490,8 @@ class SFDParser():
 
         font = self._font
         info = font.info
+
+        charData = None
 
         i = 0
         while i < len(data):
@@ -669,20 +666,26 @@ class SFDParser():
                 section, i = self._getSction(data, value, i, "EndPrivate")
                 self._parsePrivateDict(section)
             elif key == "BeginChars":
-                chars, i = self._getSction(data, value, i, "EndChars")
-                chars.pop(0)
-                self._parseChars(chars)
+                charData, i = self._getSction(data, value, i, "EndChars")
+                charData.pop(0)
 
            #elif value is not None:
            #    print(key, value)
 
         if isdir:
+            assert charData is None
             import glob
-            chars = []
+            charData = []
             for filename in glob.iglob(os.path.join(self._path, '*.glyph')):
                 with open(filename) as fp:
-                    chars += fp.readlines()
-            self._parseChars(chars)
+                    charData += fp.readlines()
+
+        self._parseChars(charData)
+
+        # We can’t insert the references while parsing the glyphs since
+        # FontForge uses glyph indices so we need to know the glyph order
+        # first.
+        self._processReferences()
 
         # FontForge does not have an explicit UPEM setting, it is the sum of its
         # ascender and descender.
