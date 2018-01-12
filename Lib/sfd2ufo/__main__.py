@@ -3,7 +3,7 @@ import argparse
 from defcon import Font
 
 from . import SFDFont
-from . import sfd
+from .sfd import SFDParser
 
 
 def main():
@@ -17,7 +17,8 @@ def main():
     args = parser.parse_args()
 
     font = Font()
-    sfd.parse(font, args.sfdfile)
+    parser = SFDParser(args.sfdfile, font)
+    parser.parse()
 
 #   font = SFDFont(args.sfdfile, args.ignore_uvs)
     font.save(args.ufofile)
