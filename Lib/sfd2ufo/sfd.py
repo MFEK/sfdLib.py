@@ -310,7 +310,7 @@ class SFDParser():
     def _parseImage(self, glyph, data):
         pass
 
-    _LAYER_KEYWORDS = ["Fore", "Back", "Layer"]
+    _LAYER_KEYWORDS = ["Back", "Fore", "Layer"]
 
     def _parseCharLayer(self, glyph, data):
         font = self._font
@@ -318,12 +318,11 @@ class SFDParser():
         width = glyph.width
 
         layer = data.pop(0)
-        if layer == "Fore":
-            layer = font.layers.defaultLayer
-        elif layer == "Back":
-            layer = self._layerMap[0]
+        if layer in self._LAYER_KEYWORDS:
+            idx = self._LAYER_KEYWORDS.index(layer)
         else:
-            layer = self._layerMap[int(layer.split(": ")[1])]
+            idx = int(layer.split(": ")[1])
+        layer = self._layerMap[idx]
 
         if glyph.name not in layer:
             glyph = layer.newGlyph(name)
@@ -555,7 +554,7 @@ class SFDParser():
                 if idx == 1:
                     self._layerMap[idx] = font.layers.defaultLayer
                 else:
-                    self._layerMap[idx] = font.newLayer(name)
+                    self._layerMap[idx] = name
             elif key == "DisplayLayer":
                 pass # XXX default layer
             elif key == "DisplaySize":
@@ -669,6 +668,15 @@ class SFDParser():
 
            #elif value is not None:
            #    print(key, value)
+
+
+        for idx, name in enumerate(self._layerMap):
+            if not isinstance(name, (str, unicode)):
+                continue
+            if idx not in (0, 1) and self._layerMap.count(name) != 1:
+                # FontForge layer names are not unique, make sure ours are.
+                name += "_%d" % idx
+            self._layerMap[idx] = font.newLayer(name)
 
         if isdir:
             assert charData is None
