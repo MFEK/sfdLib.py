@@ -306,6 +306,7 @@ class SFDParser():
                         pen.lineTo(*points)
                     else:
                         if quadratic:
+                            points.pop(0) # XXX I don’t know what I’m doing
                             pen.qCurveTo(*points)
                         else:
                             pen.curveTo(*points)
