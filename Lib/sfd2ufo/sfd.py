@@ -256,7 +256,7 @@ class SFDParser():
                     if self._NAMES[nameId]:
                         setattr(info, self._NAMES[nameId], name)
 
-    def _getSction(self, data, value, i, end):
+    def _getSection(self, data, value, i, end):
         section = []
         section.append(value)
 
@@ -280,7 +280,7 @@ class SFDParser():
             i += 1
 
             if line == "Spiro":
-                spiro, i = self._getSction(data, line, i, "EndSpiro")
+                spiro, i = self._getSection(data, line, i, "EndSpiro")
                 i += 1
             else:
                 points, command, flags = [c.strip() for c in GLYPH_COMMAND_RE.split(line)]
@@ -346,10 +346,10 @@ class SFDParser():
                 value = None
 
             if   key == "SplineSet":
-                splines, i = self._getSction(data, value, i, "EndSplineSet")
+                splines, i = self._getSection(data, value, i, "EndSplineSet")
                 self._parseSplineSet(glyph, splines)
             elif key == "Image":
-                image, i = self._getSction(data, value, i, "EndImage")
+                image, i = self._getSection(data, value, i, "EndImage")
                 self._parseImage(glyph, image)
             elif key == "Colour":
                 glyph.markColor = parseColor(int(value, 16))
@@ -427,7 +427,7 @@ class SFDParser():
             elif key == "AnchorPoint":
                 self._parseAnchorPoint(glyph, value)
             elif key in self._LAYER_KEYWORDS:
-                layer, i = self._getSction(data, line, i,
+                layer, i = self._getSection(data, line, i,
                     self._LAYER_KEYWORDS + ["EndChar"])
                 layerglyph = self._parseLayer(glyph, layer)
             elif key == "Comment":
@@ -466,7 +466,7 @@ class SFDParser():
             i += 1
 
             if line.startswith("StartChar"):
-                char, i = self._getSction(data, line, i, "EndChar")
+                char, i = self._getSection(data, line, i, "EndChar")
                 glyph, order = self._parseChar(char)
                 glyphOrderMap[glyph.name] = order
 
@@ -663,10 +663,10 @@ class SFDParser():
             elif key == "EndSplineFont":
                 break
             elif key == "BeginPrivate":
-                section, i = self._getSction(data, value, i, "EndPrivate")
+                section, i = self._getSection(data, value, i, "EndPrivate")
                 self._parsePrivateDict(section)
             elif key == "BeginChars":
-                charData, i = self._getSction(data, value, i, "EndChars")
+                charData, i = self._getSection(data, value, i, "EndChars")
                 charData.pop(0)
 
            #elif value is not None:
