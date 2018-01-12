@@ -139,6 +139,7 @@ class SFDParser():
         self._path = path
         self._font = font
         self._layers = []
+        self._layerType = []
         self._glyphRefs = {}
 
     def _parsePrivateDict(self, data):
@@ -270,7 +271,7 @@ class SFDParser():
 
         return section, i
 
-    def _parseSplineSet(self, glyph, data):
+    def _parseSplineSet(self, glyph, data, quadratic):
         contours = []
 
         i = 0
@@ -304,7 +305,10 @@ class SFDParser():
                     elif command == "l":
                         pen.lineTo(*points)
                     else:
-                        pen.curveTo(*points)
+                        if quadratic:
+                            pen.qCurveTo(*points)
+                        else:
+                            pen.curveTo(*points)
                 pen.closePath()
 
     def _parseImage(self, glyph, data):
@@ -323,6 +327,7 @@ class SFDParser():
         else:
             idx = int(layer.split(": ")[1])
         layer = self._layers[idx]
+        quadratic = self._layerType[idx]
 
         if glyph.name not in layer:
             glyph = layer.newGlyph(name)
@@ -345,7 +350,7 @@ class SFDParser():
 
             if   key == "SplineSet":
                 splines, i = self._getSection(data, i, "EndSplineSet")
-                self._parseSplineSet(glyph, splines)
+                self._parseSplineSet(glyph, splines, quadratic)
             elif key == "Image":
                 image, i = self._getSection(data, i, "EndImage", value)
                 self._parseImage(glyph, image)
@@ -546,15 +551,17 @@ class SFDParser():
                 pass # XXX = toFloat(value) # auto spacing
             elif key == "LayerCount":
                 self._layers = int(value) * [None]
+                self._layerType = int(value) * [None]
             elif key == "Layer":
                 m = LAYER_RE.match(value)
                 idx = int(m.groups()[0])
-               # XXX isQuadatic = bool(int(m.groups()[1]))
+                quadratic = bool(int(m.groups()[1]))
                 name = SFDReadUTF7(m.groups()[2])
                 if idx == 1:
                     self._layers[idx] = font.layers.defaultLayer
                 else:
                     self._layers[idx] = name
+                self._layerType[idx] = quadratic
             elif key == "DisplayLayer":
                 pass # XXX default layer
             elif key == "DisplaySize":
