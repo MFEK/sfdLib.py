@@ -138,6 +138,7 @@ class SFDParser():
     def __init__(self, path, font):
         self._path = path
         self._font = font
+        self._layerMap = []
 
     def _parsePrivateDict(self, data):
         info = self._font.info
@@ -320,9 +321,9 @@ class SFDParser():
         if layer == "Fore":
             layer = font.layers.defaultLayer
         elif layer == "Back":
-            layer = font.XXXlayerMap[0]
+            layer = self._layerMap[0]
         else:
-            layer = font.XXXlayerMap[int(layer.split(": ")[1])]
+            layer = self._layerMap[int(layer.split(": ")[1])]
 
         if glyph.name not in layer:
             glyph = layer.newGlyph(name)
@@ -549,16 +550,16 @@ class SFDParser():
             elif key == "WidthSeparation":
                 pass # XXX = toFloat(value) # auto spacing
             elif key == "LayerCount":
-                font.XXXlayerMap = int(value) * [None]
+                self._layerMap = int(value) * [None]
             elif key == "Layer":
                 m = LAYER_RE.match(value)
                 idx = int(m.groups()[0])
                # XXX isQuadatic = bool(int(m.groups()[1]))
                 name = SFDReadUTF7(m.groups()[2])
                 if idx == 1:
-                    font.XXXlayerMap[idx] = font.layers.defaultLayer
+                    self._layerMap[idx] = font.layers.defaultLayer
                 else:
-                    font.XXXlayerMap[idx] = font.newLayer(name)
+                    self._layerMap[idx] = font.newLayer(name)
             elif key == "DisplayLayer":
                 pass # XXX default layer
             elif key == "DisplaySize":
