@@ -312,7 +312,7 @@ class SFDParser():
 
     _LAYER_KEYWORDS = ["Fore", "Back", "Layer"]
 
-    def _parseLayer(self, glyph, data):
+    def _parseCharLayer(self, glyph, data):
         font = self._font
         name = glyph.name
         width = glyph.width
@@ -428,7 +428,7 @@ class SFDParser():
             elif key in self._LAYER_KEYWORDS:
                 layer, i = self._getSection(data, i,
                     self._LAYER_KEYWORDS + ["EndChar"], line)
-                layerglyph = self._parseLayer(glyph, layer)
+                layerglyph = self._parseCharLayer(glyph, layer)
             elif key == "Comment":
                 glyph.note = SFDReadUTF7(value)
             elif key == "Flags":
