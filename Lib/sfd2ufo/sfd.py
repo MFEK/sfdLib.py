@@ -138,7 +138,7 @@ class SFDParser():
     def __init__(self, path, font):
         self._path = path
         self._font = font
-        self._layerMap = []
+        self._layers = []
         self._glyphRefs = {}
 
     def _parsePrivateDict(self, data):
@@ -322,7 +322,7 @@ class SFDParser():
             idx = self._LAYER_KEYWORDS.index(layer)
         else:
             idx = int(layer.split(": ")[1])
-        layer = self._layerMap[idx]
+        layer = self._layers[idx]
 
         if glyph.name not in layer:
             glyph = layer.newGlyph(name)
@@ -545,16 +545,16 @@ class SFDParser():
             elif key == "WidthSeparation":
                 pass # XXX = toFloat(value) # auto spacing
             elif key == "LayerCount":
-                self._layerMap = int(value) * [None]
+                self._layers = int(value) * [None]
             elif key == "Layer":
                 m = LAYER_RE.match(value)
                 idx = int(m.groups()[0])
                # XXX isQuadatic = bool(int(m.groups()[1]))
                 name = SFDReadUTF7(m.groups()[2])
                 if idx == 1:
-                    self._layerMap[idx] = font.layers.defaultLayer
+                    self._layers[idx] = font.layers.defaultLayer
                 else:
-                    self._layerMap[idx] = name
+                    self._layers[idx] = name
             elif key == "DisplayLayer":
                 pass # XXX default layer
             elif key == "DisplaySize":
@@ -670,13 +670,13 @@ class SFDParser():
            #    print(key, value)
 
 
-        for idx, name in enumerate(self._layerMap):
+        for idx, name in enumerate(self._layers):
             if not isinstance(name, (str, unicode)):
                 continue
-            if idx not in (0, 1) and self._layerMap.count(name) != 1:
+            if idx not in (0, 1) and self._layers.count(name) != 1:
                 # FontForge layer names are not unique, make sure ours are.
                 name += "_%d" % idx
-            self._layerMap[idx] = font.newLayer(name)
+            self._layers[idx] = font.newLayer(name)
 
         if isdir:
             assert charData is None
