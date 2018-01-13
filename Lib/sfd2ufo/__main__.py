@@ -3,7 +3,7 @@ import argparse
 from defcon import Font
 
 from . import SFDFont
-from .sfd import SFDParser
+from .parser import SFDParser
 
 
 def main():
