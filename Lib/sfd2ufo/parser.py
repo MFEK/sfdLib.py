@@ -304,7 +304,7 @@ class SFDParser():
         self._glyphKerns[glyph.name] = []
         for (gid, kern, subtable) in kerns:
             gid = int(gid)
-            kern = float(kern)
+            kern = int(kern)
             self._glyphKerns[glyph.name].append((gid, kern))
 
     def _parseKernClass(self, data, i, value):
@@ -326,7 +326,7 @@ class SFDParser():
 
         kerns = data[i]
         kerns = DEVICETABLE_RE.split(kerns)
-        kerns = [float(k) for k in kerns if k]
+        kerns = [int(k) for k in kerns if k]
 
         self._kernClasses[name] = (first, second, kerns)
 
