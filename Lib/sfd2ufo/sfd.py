@@ -233,10 +233,10 @@ class SFDParser():
 
     _NAMES = [
         "copyright",
-        None, # styleMapFamily
-        None, # styleMapStyle
+        None, # XXX styleMapFamily
+        None, # XXX styleMapStyle
         "openTypeNameUniqueID",
-        None, # styleMapFamily and styleMapStyle
+        None, # XXX styleMapFamily and styleMapStyle
         "openTypeNameVersion",
         "postscriptFontName",
         "trademark",
@@ -247,12 +247,12 @@ class SFDParser():
         "openTypeNameDesignerURL",
         "openTypeNameLicense",
         "openTypeNameLicenseURL",
-        None,
+        None, # Reserved
         "openTypeNamePreferredFamilyName",
         "openTypeNamePreferredSubfamilyName",
         "openTypeNameCompatibleFullName",
         "openTypeNameSampleText",
-        None,
+        None, # XXX
         "openTypeNameWWSFamilyName",
         "openTypeNameWWSSubfamilyName",
     ]
@@ -270,9 +270,15 @@ class SFDParser():
         for nameId, name in enumerate(data):
             name = SFDReadUTF7(name)
             if name:
-                if langId == 1033: # English (United States)
-                    if self._NAMES[nameId]:
-                        setattr(info, self._NAMES[nameId], name)
+                if langId == 1033 and self._NAMES[nameId]:
+                    # English (United States)
+                    setattr(info, self._NAMES[nameId], name)
+                else:
+                    if not info.openTypeNameRecords:
+                        info.openTypeNameRecords = []
+                    info.openTypeNameRecords.append(
+                        dict(nameID=nameId, languageID=langId, string=name,
+                             platformID=3, encodingID=1))
 
     def _getSection(self, data, i, end, value=None):
         section = []
