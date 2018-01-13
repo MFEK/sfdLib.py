@@ -2,7 +2,7 @@ import argparse
 
 from defcon import Font
 
-from . import SFDFont
+from .native import SFDFont
 from .parser import SFDParser
 
 
