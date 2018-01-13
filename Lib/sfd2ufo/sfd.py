@@ -659,7 +659,10 @@ class SFDParser():
             elif key == "OS2Version":
                 pass # XXX
             elif key == "OS2_WeightWidthSlopeOnly":
-                pass # info.XXX = bool(int(value))
+                if int(value):
+                    if not info.openTypeOS2Selection:
+                        info.openTypeOS2Selection = []
+                    info.openTypeOS2Selection += [8]
             elif key == "OS2_UseTypoMetrics":
                 if not info.openTypeOS2Selection:
                     info.openTypeOS2Selection = []
