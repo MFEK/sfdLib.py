@@ -17,7 +17,7 @@ def main():
     args = parser.parse_args()
 
     font = Font()
-    parser = SFDParser(args.sfdfile, font)
+    parser = SFDParser(args.sfdfile, font, args.ignore_uvs)
     parser.parse()
 
 #   font = SFDFont(args.sfdfile, args.ignore_uvs)

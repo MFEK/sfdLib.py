@@ -151,9 +151,10 @@ def SFDReadUTF7(data):
 class SFDParser():
     """Parses an SFD file or SFDIR directory."""
 
-    def __init__(self, path, font):
+    def __init__(self, path, font, ignore_uvs=False):
         self._path = path
         self._font = font
+        self._ignore_uvs = ignore_uvs
         self._layers = []
         self._layerType = []
         self._glyphRefs = {}
@@ -456,7 +457,7 @@ class SFDParser():
             elif key == "AltUni2":
                 altuni = [int(v, 16) for v in value.split(".")]
                 altuni = [altuni[j:j + 3] for j in range(0, len(altuni), 3)]
-                unicodes += parseAltuni(altuni, True) # XXX
+                unicodes += parseAltuni(altuni, self._ignore_uvs)
             elif key == "GlyphClass":
                 glyphclass = self._GLYPH_CLASSES[int(value)]
                 glyph.lib[FONTFORGE_PREFIX + ".glyphclass"] = glyphclass
