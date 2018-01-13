@@ -614,13 +614,13 @@ class SFDParser():
             elif key == "DisplayLayer":
                 pass # XXX default layer
             elif key == "DisplaySize":
-                pass # XXX GUI
+                pass # GUI
             elif key == "AntiAlias":
-                pass # XXX GUI
+                pass # GUI
             elif key == "FitToEm":
-                pass # XXX GUI
+                pass # GUI
             elif key == "WinInfo":
-                pass # XXX GUI
+                pass # GUI
             elif key == "Encoding":
                 pass # XXX encoding = value
             elif key == "CreationTime":
