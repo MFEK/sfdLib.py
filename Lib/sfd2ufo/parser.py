@@ -134,14 +134,11 @@ class SFDParser():
         data = [data[j:j + 2] for j in range(0, len(data), 2)]
 
         records = []
-        for ppem, flag in data:
+        for ppem, flags in data:
             ppem = int(ppem)
-            flag = int(flag)
-            flaglist = []
-            for j in range(4):
-                if flag & (1 << j):
-                    flaglist.append(j)
-            records.append(dict(rangeMaxPPEM=ppem, rangeGaspBehavior=flaglist))
+            flags = int(flags)
+            flags = [i for i in range(4) if flags & (1 << i)]
+            records.append(dict(rangeMaxPPEM=ppem, rangeGaspBehavior=flags))
 
         if records:
             info.openTypeGaspRangeRecords = records
