@@ -675,7 +675,7 @@ class SFDParser():
             elif key == "Encoding":
                 pass # XXX encoding = value
             elif key == "CreationTime":
-                v = datetime.fromtimestamp(int(value))
+                v = datetime.utcfromtimestamp(int(value))
                 info.openTypeHeadCreated = v.strftime("%Y/%m/%d %H:%M:%S")
             elif key == "ModificationTime":
                 pass # XXX
