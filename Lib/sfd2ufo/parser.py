@@ -11,9 +11,9 @@ import re
 from collections import OrderedDict
 from datetime import datetime
 
-from . import parseAltuni, parseAnchorPoint, parseColor, parseVersion, \
-              getFontBounds, processKernClasses
-from . import FONTFORGE_PREFIX
+from .utils import parseAltuni, parseAnchorPoint, parseColor, parseVersion, \
+                   getFontBounds, processKernClasses
+from .utils import FONTFORGE_PREFIX
 
 
 QUOTED_RE = re.compile('(".*?")')
