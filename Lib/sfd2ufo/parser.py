@@ -138,7 +138,7 @@ class SFDParser():
             ppem = int(ppem)
             flag = int(flag)
             flaglist = []
-            for j in range(3):
+            for j in range(4):
                 if flag & (1 << j):
                     flaglist.append(j)
             records.append(dict(rangeMaxPPEM=ppem, rangeGaspBehavior=flaglist))
