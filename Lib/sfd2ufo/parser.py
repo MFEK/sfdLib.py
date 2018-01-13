@@ -644,9 +644,9 @@ class SFDParser():
             elif key == "UnderlineWidth":
                 info.postscriptUnderlineThickness = float(value)
             elif key in "Ascent":
-                info.ascender = float(value)
+                info.ascender = int(value)
             elif key in "Descent":
-                info.descender = -float(value)
+                info.descender = -int(value)
             elif key == "sfntRevision":
                 pass # info.XXX = int(value, 16)
             elif key == "WidthSeparation":
