@@ -233,6 +233,11 @@ class SFDParser():
                 glyph = layer.newGlyph(name)
                 pen = glyph.getPen()
                 glyph.width = sfdGlyph.width
+                # Hmm, FontForge always reports a vwidth even if the user
+                # didn’t set any! The test against UPEM is an attempt to catch
+                # this.
+                if sfdGlyph.vwidth != self._sfd.em:
+                    glyph.height = sfdGlyph.vwidth
                 sfdLayer.draw(pen)
                 for ref in sfdLayerRefs:
                     pen.addComponent(ref[0], ref[1])
