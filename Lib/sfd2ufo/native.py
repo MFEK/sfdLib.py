@@ -54,6 +54,8 @@ class SFDParser():
             if sfdName in ("capHeight", "xHeight") and value < 0:
                 return
             if sfdName == "os2_family_class":
+                if not value:
+                    return
                 value = (value >> 8, value & 0xff)
             if sfdName == "os2_fstype":
                 fstype = [i for i in range(16) if value & (1 << i)]
@@ -191,7 +193,8 @@ class SFDParser():
         self._setInfo("postscriptFullName", "fullname")
         info.postscriptSlantAngle = info.italicAngle
         self._setInfo("postscriptWeightName", "weight")
-        self._setInfo("postscriptUniqueID", "uniqueid")
+        if self._sfd.uniqueid:
+            self._setInfo("postscriptUniqueID", "uniqueid")
         self._setInfo("postscriptUnderlineThickness", "uwidth")
         self._setInfo("postscriptUnderlinePosition", "upos")
 
