@@ -437,6 +437,8 @@ class SFDParser():
             elif key == "UnlinkRmOvrlpSave":
                 v = bool(int(value))
                 glyph.lib[FONTFORGE_PREFIX + ".decomposeAndRemoveOverlap"] = v
+            elif key in ("HStem", "VStem", "DStem2", "CounterMasks"):
+                pass # XXX
             elif key == "Flags":
                 pass # XXX
             elif key == "LayerCount":
