@@ -572,9 +572,16 @@ class SFDParser():
             elif key == "Comments":
                 info.note = value
             elif key == "UComments":
+                old = info.note
                 info.note = SFDReadUTF7(value)
+                if old:
+                    info.note += "\n" + old
             elif key == "FontLog":
-                pass # info.XXX = SFDReadUTF7(value)
+                if not info.note:
+                    info.note = ""
+                else:
+                    info.note = "\n"
+                info.note += "Font log:\n" + SFDReadUTF7(value)
             elif key == "Version":
                 info.versionMajor, info.versionMinor = parseVersion(value)
             elif key == "ItalicAngle":
