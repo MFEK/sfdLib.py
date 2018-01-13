@@ -126,7 +126,8 @@ class SFDParser():
         self._setInfo("openTypeOS2WidthClass", "os2_width")
         self._setInfo("openTypeOS2WeightClass", "os2_weight")
         self._setInfo("openTypeOS2VendorID", "os2_vendor")
-        self._setInfo("openTypeOS2Panose", "os2_panose")
+        if any(self._sfd.os2_panose):
+            self._setInfo("openTypeOS2Panose", "os2_panose")
         self._setInfo("openTypeOS2FamilyClass", "os2_family_class")
        #self._setInfo("openTypeOS2UnicodeRanges", "os2_unicoderanges")
        #self._setInfo("openTypeOS2CodePageRanges", "os2_codepages")
@@ -136,16 +137,22 @@ class SFDParser():
         self._setInfo("openTypeOS2WinAscent", "os2_winascent")
         self._setInfo("openTypeOS2WinDescent", "os2_windescent")
         self._setInfo("openTypeOS2Type", "os2_fstype")
-        self._setInfo("openTypeOS2SubscriptXSize", "os2_subxsize")
-        self._setInfo("openTypeOS2SubscriptYSize", "os2_subysize")
-        self._setInfo("openTypeOS2SubscriptXOffset", "os2_subxoff")
-        self._setInfo("openTypeOS2SubscriptYOffset", "os2_subyoff")
-        self._setInfo("openTypeOS2SuperscriptXSize", "os2_supxsize")
-        self._setInfo("openTypeOS2SuperscriptYSize", "os2_supysize")
-        self._setInfo("openTypeOS2SuperscriptXOffset", "os2_supxoff")
-        self._setInfo("openTypeOS2SuperscriptYOffset", "os2_supyoff")
-        self._setInfo("openTypeOS2StrikeoutSize", "os2_strikeysize")
-        self._setInfo("openTypeOS2StrikeoutPosition", "os2_strikeypos")
+
+        if any([self._sfd.os2_subxsize, self._sfd.os2_subysize,
+                self._sfd.os2_subxoff, self._sfd.os2_subyoff,
+                self._sfd.os2_supxsize, self._sfd.os2_supysize,
+                self._sfd.os2_supxoff, self._sfd.os2_supyoff,
+                self._sfd.os2_strikeysize, self._sfd.os2_strikeypos]):
+            self._setInfo("openTypeOS2SubscriptXSize", "os2_subxsize")
+            self._setInfo("openTypeOS2SubscriptYSize", "os2_subysize")
+            self._setInfo("openTypeOS2SubscriptXOffset", "os2_subxoff")
+            self._setInfo("openTypeOS2SubscriptYOffset", "os2_subyoff")
+            self._setInfo("openTypeOS2SuperscriptXSize", "os2_supxsize")
+            self._setInfo("openTypeOS2SuperscriptYSize", "os2_supysize")
+            self._setInfo("openTypeOS2SuperscriptXOffset", "os2_supxoff")
+            self._setInfo("openTypeOS2SuperscriptYOffset", "os2_supyoff")
+            self._setInfo("openTypeOS2StrikeoutSize", "os2_strikeysize")
+            self._setInfo("openTypeOS2StrikeoutPosition", "os2_strikeypos")
 
         if self._sfd.os2_use_typo_metrics:
             info.openTypeOS2Selection = [7]
