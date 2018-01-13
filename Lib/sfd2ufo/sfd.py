@@ -292,7 +292,7 @@ class SFDParser():
             section.append(data[i])
             i += 1
 
-        return section, i
+        return section, i + 1
 
     def _parseSplineSet(self, data):
         contours = []
