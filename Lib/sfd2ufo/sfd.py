@@ -9,7 +9,8 @@ import re
 
 from datetime import datetime
 
-from . import parseAltuni, parseAnchorPoint, parseColor, parseVersion
+from . import parseAltuni, parseAnchorPoint, parseColor, parseVersion, \
+              getFontBounds
 from . import FONTFORGE_PREFIX
 
 
@@ -520,6 +521,36 @@ class SFDParser():
         assert len(font.glyphOrder) == len(glyphOrderMap)
         font.glyphOrder = sorted(glyphOrderMap, key=glyphOrderMap.get)
 
+    _OFFSET_METRICS = {
+        "HheadAOffset": "openTypeHheaAscender",
+        "HheadDOffset": "openTypeHheaDescender",
+        "OS2TypoAOffset": "openTypeOS2TypoAscender",
+        "OS2TypoDOffset": "openTypeOS2TypoDescender",
+        "OS2WinAOffset": "openTypeOS2WinAscent",
+        "OS2WinDOffset": "openTypeOS2WinDescent",
+    }
+
+    def _fixOffsetMetrics(self, metrics):
+        info = self._font.info
+        bounds = getFontBounds(self._font.bounds)
+        for metric in metrics:
+            value = getattr(info, metric)
+
+            if   metric == "openTypeOS2TypoAscender":
+                value = self._font.ascender + value
+            elif metric == "openTypeOS2TypoDescender":
+                value = self._font.descender + value
+            elif metric == "openTypeOS2WinAscent":
+                value = bounds["yMax"] + value
+            elif metric == "openTypeOS2WinDescent":
+                value = max(-bounds["yMin"] + value, 0)
+            elif metric == "openTypeHheaAscender":
+                value = bounds["yMax"] + value
+            elif metric == "openTypeHheaDescender":
+                value = bounds["yMin"] + value
+
+            setattr(info, metric, value)
+
     def parse(self):
         isdir = os.path.isdir(self._path)
         if isdir:
@@ -537,6 +568,7 @@ class SFDParser():
         info = font.info
 
         charData = None
+        offsetMetrics = []
 
         i = 0
         while i < len(data):
@@ -679,10 +711,9 @@ class SFDParser():
                 info.openTypeOS2WinAscent = int(value)
             elif key == "OS2WinDescent":
                 info.openTypeOS2WinDescent = int(value)
-            elif key in ("HheadAOffset", "HheadDOffset", "OS2TypoAOffset",
-                         "OS2TypoDOffset", "OS2WinAOffset", "OS2WinDOffset"):
-                v = bool(int(value))
-           #    assert not v, (key, value) # XXX
+            elif key in self._OFFSET_METRICS:
+                if int(value):
+                    offsetMetrics.append(self._OFFSET_METRICS[key])
             elif key == "OS2SubXSize":
                 info.openTypeOS2SubscriptXSize = int(value)
             elif key == "OS2SubYSize":
@@ -754,6 +785,10 @@ class SFDParser():
 
         # Same for kerning.
         self._processKerns()
+
+        # Need to run after parsing glyphs so that we can caluculate font
+        # bounding box.
+        self._fixOffsetMetrics(offsetMetrics)
 
         # FontForge does not have an explicit UPEM setting, it is the sum of its
         # ascender and descender.

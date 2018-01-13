@@ -60,6 +60,13 @@ def parseColor(color):
     return (r, g, b, a)
 
 
+def getFontBounds(bounds):
+    """Calculate FF font bounds."""
+
+    bbox = [int(round(v)) for v in bounds]
+    return dict(xMin=bbox[0], yMin=bbox[1], xMax=bbox[2], yMax=bbox[3])
+
+
 class SFDFont(Font):
 
     def __init__(self, path, ignore_uvs=False):
@@ -69,7 +76,6 @@ class SFDFont(Font):
 
         self._sfd = fontforge.open(path)
         self._layerMap = {}
-        self._bounds = None
         self._private = {}
 
         self._buildLayers()
@@ -101,15 +107,17 @@ class SFDFont(Font):
                 fstype = [i for i in range(16) if value & (1 << i)]
                 value = fstype
 
-            bb = self._getFontBounds()
+            bb = getFontBounds(self.bounds)
             if sfdName == "os2_typoascent" and getattr(self._sfd, sfdName + "_add"):
                 value = self._sfd.ascent + value
             if sfdName == "os2_typodescent" and getattr(self._sfd, sfdName + "_add"):
                 value = -self._sfd.descent + value
+
             if sfdName == "os2_winascent" and getattr(self._sfd, sfdName + "_add"):
                 value = bb["yMax"] + value
             if sfdName == "os2_windescent" and getattr(self._sfd, sfdName + "_add"):
                 value = max(-bb["yMin"] + value, 0)
+
             if sfdName == "hhea_ascent" and getattr(self._sfd, sfdName + "_add"):
                 value = bb["yMax"] + value
             if sfdName == "hhea_descent" and getattr(self._sfd, sfdName + "_add"):
@@ -136,12 +144,6 @@ class SFDFont(Font):
 
         if sfdName in self._private:
             setattr(self.info, ufoName, self._private[sfdName])
-
-    def _getFontBounds(self):
-        """Calculate FF font bounds."""
-
-        bbox = [int(round(v)) for v in self.bounds]
-        return dict(xMin=bbox[0], yMin=bbox[1], xMax=bbox[2], yMax=bbox[3])
 
     def _buildInfo(self):
         info = self.info
