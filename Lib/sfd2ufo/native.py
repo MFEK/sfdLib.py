@@ -12,16 +12,22 @@ from .utils import parseAltuni, parseAnchorPoint, parseColor, parseVersion, \
 from .utils import FONTFORGE_PREFIX
 
 
-class SFDFont(Font):
+class SFDParser():
+    """Parses an SFD file or SFDIR directory, using FontForge’s native python
+    extension.
+    """
 
-    def __init__(self, path, ignore_uvs=False):
-        super(SFDFont, self).__init__()
+    def __init__(self, path, font, ignore_uvs=False):
+        self._path = path
+        self._font = font
+        self._ignore_uvs = ignore_uvs
 
-        self.ignore_uvs = ignore_uvs
-
-        self._sfd = fontforge.open(path)
+        self._sfd = None
         self._layerMap = {}
         self._private = {}
+
+    def parse(self):
+        self._sfd = fontforge.open(self._path)
 
         self._buildLayers()
         self._buildGlyphs()
@@ -30,12 +36,13 @@ class SFDFont(Font):
         self._buildInfo()
 
     def __del__(self):
-        self._sfd.close()
+        if self._sfd is not None:
+            self._sfd.close()
 
     def _setInfoFromName(self, ufoName, sfdName):
         for name in self._sfd.sfnt_names:
             if name[0] == "English (US)" and name[1] == sfdName:
-                setattr(self.info, ufoName, name[2])
+                setattr(self._font.info, ufoName, name[2])
 
     def _setInfo(self, ufoName, sfdName):
         value = getattr(self._sfd, sfdName, None)
@@ -52,7 +59,7 @@ class SFDFont(Font):
                 fstype = [i for i in range(16) if value & (1 << i)]
                 value = fstype
 
-            bb = getFontBounds(self.bounds)
+            bb = getFontBounds(self._font.bounds)
             if sfdName == "os2_typoascent" and getattr(self._sfd, sfdName + "_add"):
                 value = self._sfd.ascent + value
             if sfdName == "os2_typodescent" and getattr(self._sfd, sfdName + "_add"):
@@ -68,7 +75,7 @@ class SFDFont(Font):
             if sfdName == "hhea_descent" and getattr(self._sfd, sfdName + "_add"):
                 value = bb["yMin"] + value
 
-            setattr(self.info, ufoName, value)
+            setattr(self._font.info, ufoName, value)
 
     def _setPrivate(self, ufoName, sfdName):
         if not self._private:
@@ -88,10 +95,10 @@ class SFDFont(Font):
                         self._private[k1] = [stdw] + snap
 
         if sfdName in self._private:
-            setattr(self.info, ufoName, self._private[sfdName])
+            setattr(self._font.info, ufoName, self._private[sfdName])
 
     def _buildInfo(self):
-        info = self.info
+        info = self._font.info
 
         self._setInfo("familyName", "familyname")
         self._setInfoFromName("styleName", "SubFamily")
@@ -204,15 +211,15 @@ class SFDFont(Font):
                     angle = math.degrees(math.atan2(p1.x - p0.x, p1.y - p0.y))
                     if angle < 0:
                         angle = 360 + angle
-                self.info.appendGuideline({"x": x, "y": y, "name": name, "angle": angle})
+                self._font.info.appendGuideline({"x": x, "y": y, "name": name, "angle": angle})
 
     def _buildLayers(self):
         for i in range(self._sfd.layer_cnt):
             name = self._sfd.layers[i].name
             if i == self._sfd.activeLayer:
-                self._layerMap[name] = self.layers.defaultLayer
+                self._layerMap[name] = self._font.layers.defaultLayer
             else:
-                self._layerMap[name] = self.newLayer(name)
+                self._layerMap[name] = self._font.newLayer(name)
 
     def _buildGlyphs(self):
         for sfdGlyph in self._sfd.glyphs():
@@ -221,7 +228,7 @@ class SFDFont(Font):
                 sfdLayer = sfdGlyph.layers[sfdLayerName]
                 sfdLayerRefs = sfdGlyph.layerrefs[sfdLayerName]
                 layer = self._layerMap[sfdLayerName]
-                if not sfdLayer and not sfdLayerRefs and layer != self.layers.defaultLayer:
+                if not sfdLayer and not sfdLayerRefs and layer != self._font.layers.defaultLayer:
                     continue
                 glyph = layer.newGlyph(name)
                 pen = glyph.getPen()
@@ -234,12 +241,12 @@ class SFDFont(Font):
                 if sfdGlyph.glyphclass != "automatic":
                     glyph.lib[FONTFORGE_PREFIX + ".glyphclass"] = sfdGlyph.glyphclass
 
-            glyph = self[name]
+            glyph = self._font[name]
             unicodes = []
             if sfdGlyph.unicode > 0:
                 unicodes.append(sfdGlyph.unicode)
             if sfdGlyph.altuni:
-                unicodes += parseAltuni(sfdGlyph.altuni, self.ignore_uvs)
+                unicodes += parseAltuni(sfdGlyph.altuni, self._ignore_uvs)
             glyph.unicodes = unicodes
 
             for anchor in sfdGlyph.anchorPoints:
@@ -278,12 +285,12 @@ class SFDFont(Font):
                                 unsupportedPair = True
 
                         if kerning and not unsupportedPair:
-                            self.kerning.update(kerning)
+                            self._font.kerning.update(kerning)
                             # Delete the positioning so that we don’t export it
                             # to the feature file.
                             sfdGlyph.removePosSub(subtable)
 
-        processKernClasses(self, subtables)
+        processKernClasses(self._font, subtables)
 
     def _buildFeatures(self):
         if hasattr(self._sfd, "generateFeatureString"):
@@ -294,4 +301,4 @@ class SFDFont(Font):
                 self._sfd.generateFeatureFile(feafile.name)
                 feafile.flush()
                 fea = feafile.read()
-        self.features.text = tounicode(fea)
+        self._font.features.text = tounicode(fea)

@@ -16,13 +16,13 @@ def main():
     args = parser.parse_args()
 
     if args.native:
-        from .native import SFDFont
-        font = SFDFont(args.sfdfile, args.ignore_uvs)
+        from .native import SFDParser
     else:
         from .parser import SFDParser
-        font = Font()
-        parser = SFDParser(args.sfdfile, font, args.ignore_uvs)
-        parser.parse()
+
+    font = Font()
+    parser = SFDParser(args.sfdfile, font, args.ignore_uvs)
+    parser.parse()
 
     font.save(args.ufofile)
 
