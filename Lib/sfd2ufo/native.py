@@ -75,6 +75,16 @@ class SFDParser():
             if sfdName == "hhea_descent" and getattr(self._sfd, sfdName + "_add"):
                 value = bb["yMin"] + value
 
+            if sfdName == "gasp":
+                if not value:
+                    return
+                records = []
+                gaspFlags = ("gridfit", "antialias", "gridfit+smoothing", "symmetric-smoothing")
+                for ppem, flags in value:
+                    flags = sorted(gaspFlags.index(f) for f in flags)
+                    records.append(dict(rangeMaxPPEM=ppem, rangeGaspBehavior=flags))
+                value = records
+
             setattr(self._font.info, ufoName, value)
 
     def _setPrivate(self, ufoName, sfdName):
@@ -136,7 +146,9 @@ class SFDParser():
         self._setInfo("openTypeOS2TypoLineGap", "os2_typolinegap")
         self._setInfo("openTypeOS2WinAscent", "os2_winascent")
         self._setInfo("openTypeOS2WinDescent", "os2_windescent")
+        self._setInfo("openTypeVheaVertTypoLineGap", "vhea_linegap")
         self._setInfo("openTypeOS2Type", "os2_fstype")
+        self._setInfo("openTypeGaspRangeRecords", "gasp")
 
         if any([self._sfd.os2_subxsize, self._sfd.os2_subysize,
                 self._sfd.os2_subxoff, self._sfd.os2_subyoff,
