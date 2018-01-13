@@ -265,7 +265,7 @@ class SFDParser():
                     pen.addComponent(ref[0], ref[1])
                 if sfdGlyph.color >= 0:
                     glyph.markColor = parseColor(sfdGlyph.color)
-                if sfdGlyph.glyphclass != "automatic":
+                if sfdGlyph.glyphclass != "automatic" and layer == self._font.layers.defaultLayer:
                     glyph.lib[FONTFORGE_PREFIX + ".glyphclass"] = sfdGlyph.glyphclass
 
             glyph = self._font[name]
