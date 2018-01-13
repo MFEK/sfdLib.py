@@ -265,8 +265,11 @@ class SFDParser():
                     pen.addComponent(ref[0], ref[1])
                 if sfdGlyph.color >= 0:
                     glyph.markColor = parseColor(sfdGlyph.color)
-                if sfdGlyph.glyphclass != "automatic" and layer == self._font.layers.defaultLayer:
-                    glyph.lib[FONTFORGE_PREFIX + ".glyphclass"] = sfdGlyph.glyphclass
+                if layer == self._font.layers.defaultLayer:
+                    if sfdGlyph.glyphclass != "automatic":
+                        glyph.lib[FONTFORGE_PREFIX + ".glyphclass"] = sfdGlyph.glyphclass
+                    if sfdGlyph.unlinkRmOvrlpSave:
+                        glyph.lib[FONTFORGE_PREFIX + ".decomposeAndRemoveOverlap"] = True
 
             glyph = self._font[name]
             unicodes = []
