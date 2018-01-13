@@ -287,10 +287,7 @@ class SFDParser():
         if value is not None:
             section.append(value)
 
-        if not isinstance(end, (list, tuple)):
-            end = [end]
-
-        while i < len(data) and data[i].split(":")[0].strip() not in end:
+        while not data[i].startswith(end):
             section.append(data[i])
             i += 1
 
@@ -350,63 +347,6 @@ class SFDParser():
             kern = toFloat(kern)
             self._glyphKerns[glyph.name].append((gid, kern))
 
-    _LAYER_KEYWORDS = ["Back", "Fore", "Layer"]
-
-    def _parseCharLayer(self, glyph, data):
-        font = self._font
-        name = glyph.name
-        width = glyph.width
-
-        layer = data.pop(0)
-        if layer in self._LAYER_KEYWORDS:
-            idx = self._LAYER_KEYWORDS.index(layer)
-        else:
-            idx = int(layer.split(": ")[1])
-        layer = self._layers[idx]
-        quadratic = self._layerType[idx]
-
-        if glyph.name not in layer:
-            glyph = layer.newGlyph(name)
-            glyph.width = width
-        else:
-            glyph = layer[name]
-
-        refs = []
-
-        i = 0
-        while i < len(data):
-            line = data[i]
-            i += 1
-
-            if ": " in line:
-                key, value = line.split(": ", 1)
-            else:
-                key = line
-                value = None
-
-            if   key == "SplineSet":
-                splines, i = self._getSection(data, i, "EndSplineSet")
-                self._parseSplineSet(glyph, splines, quadratic)
-            elif key == "Image":
-                image, i = self._getSection(data, i, "EndImage", value)
-                self._parseImage(glyph, image)
-            elif key == "Colour":
-                glyph.markColor = parseColor(int(value, 16))
-            elif key == "Refer":
-                # Just collect the refs here, we can’t insert them until all the
-                # glyphs are parsed since FontForge uses glyph indices not names.
-                # The calling code will process the references at the end.
-                if glyph not in self._glyphRefs:
-                    self._glyphRefs[glyph] = []
-                self._glyphRefs[glyph].append(value)
-            elif key == "Kerns2":
-                # Technically kerns don’t belong to the layer, but the way we
-                # parse layers can lead us to seeing them here.
-                self._parseKerns(glyph, value)
-
-           #elif value is not None:
-           #    print(key, value)
-
     def _parseAnchorPoint(self, glyph, data):
         m = ANCHOR_RE.match(data)
         assert m
@@ -418,6 +358,7 @@ class SFDParser():
 
         glyph.appendAnchor(parseAnchorPoint([name, kind, x, y, index]))
 
+    _LAYER_KEYWORDS = ["Back", "Fore", "Layer"]
 
     _GLYPH_CLASSES = [
         "automatic",
@@ -434,6 +375,7 @@ class SFDParser():
             name = SFDReadUTF7(name)
 
         glyph = self._font.newGlyph(name)
+        layerGlyph = glyph
         unicodes = []
 
         i = 0
@@ -465,9 +407,29 @@ class SFDParser():
             elif key == "AnchorPoint":
                 self._parseAnchorPoint(glyph, value)
             elif key in self._LAYER_KEYWORDS:
-                layer, i = self._getSection(data, i,
-                    self._LAYER_KEYWORDS + ["EndChar"], line)
-                self._parseCharLayer(glyph, layer)
+                idx = value and int(value) or self._LAYER_KEYWORDS.index(key)
+                layer = self._layers[idx]
+                quadratic = self._layerType[idx]
+                if glyph.name not in layer:
+                    layerGlyph = layer.newGlyph(glyph.name)
+                    layerGlyph.width = glyph.width
+                else:
+                    layerGlyph = layer[glyph.name]
+            elif key == "SplineSet":
+                splines, i = self._getSection(data, i, "EndSplineSet")
+                self._parseSplineSet(layerGlyph, splines, quadratic)
+            elif key == "Image":
+                image, i = self._getSection(data, i, "EndImage", value)
+                self._parseImage(layerGlyph, image)
+            elif key == "Colour":
+                layerGlyph.markColor = parseColor(int(value, 16))
+            elif key == "Refer":
+                # Just collect the refs here, we can’t insert them until all the
+                # glyphs are parsed since FontForge uses glyph indices not names.
+                # The calling code will process the references at the end.
+                if layerGlyph not in self._glyphRefs:
+                    self._glyphRefs[layerGlyph] = []
+                self._glyphRefs[layerGlyph].append(value)
             elif key == "Kerns2":
                 self._parseKerns(glyph, value)
             elif key == "Comment":
