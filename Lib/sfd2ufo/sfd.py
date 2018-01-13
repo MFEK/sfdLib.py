@@ -434,6 +434,9 @@ class SFDParser():
                 self._parseKerns(glyph, value)
             elif key == "Comment":
                 glyph.note = SFDReadUTF7(value)
+            elif key == "UnlinkRmOvrlpSave":
+                v = bool(int(value))
+                glyph.lib[FONTFORGE_PREFIX + ".decomposeAndRemoveOverlap"] = v
             elif key == "Flags":
                 pass # XXX
             elif key == "LayerCount":
