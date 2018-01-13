@@ -335,7 +335,7 @@ class SFDParser():
                 pen.closePath()
 
     def _parseImage(self, glyph, data):
-        pass
+        pass # XXX
 
     def _parseKerns(self, glyph, data):
         assert glyph.name not in self._glyphKerns
