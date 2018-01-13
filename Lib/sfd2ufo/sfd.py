@@ -654,9 +654,10 @@ class SFDParser():
                 self._layerType = int(value) * [None]
             elif key == "Layer":
                 m = LAYER_RE.match(value)
-                idx = int(m.groups()[0])
-                quadratic = bool(int(m.groups()[1]))
-                name = SFDReadUTF7(m.groups()[2])
+                idx, quadratic, name, _ = m.groups()
+                idx = int(idx)
+                quadratic = bool(int(quadratic))
+                name = SFDReadUTF7(name)
                 if idx == 1:
                     self._layers[idx] = font.layers.defaultLayer
                 else:
