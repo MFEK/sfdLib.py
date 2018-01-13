@@ -4,6 +4,7 @@
 from fontTools.misc.py23 import *
 
 import codecs
+import math
 import os
 import re
 
@@ -293,7 +294,7 @@ class SFDParser():
 
         return section, i
 
-    def _parseSplineSet(self, glyph, data, quadratic):
+    def _parseSplineSet(self, data):
         contours = []
 
         i = 0
@@ -304,6 +305,9 @@ class SFDParser():
             if line == "Spiro":
                 spiro, i = self._getSection(data, i, "EndSpiro")
                 i += 1
+            elif line.startswith("Named"):
+                name = SFDReadUTF7(line.split(": ")[1])
+                contours[-1].append(name)
             else:
                 points, command, flags = [c.strip() for c in GLYPH_COMMAND_RE.split(line)]
                 points = [toFloat(c) for c in points.split(" ")]
@@ -318,21 +322,68 @@ class SFDParser():
                     assert len(points) == 3
                     contours[-1].append((command, points, flags))
 
-        if contours:
-            pen = glyph.getPen()
-            for contour in contours:
-                for command, points, flags in contour:
-                    if   command == "m":
-                        pen.moveTo(*points)
-                    elif command == "l":
-                        pen.lineTo(*points)
+        return contours
+
+    def _drawContours(self, glyph, contours, quadratic):
+        pen = glyph.getPen()
+        for contour in contours:
+            if not isinstance(contour[-1], (tuple, list)):
+                name = contour.pop()
+            for command, points, flags in contour:
+                if   command == "m":
+                    pen.moveTo(*points)
+                elif command == "l":
+                    pen.lineTo(*points)
+                else:
+                    if quadratic:
+                        points.pop(0) # XXX I don’t know what I’m doing
+                        pen.qCurveTo(*points)
                     else:
-                        if quadratic:
-                            points.pop(0) # XXX I don’t know what I’m doing
-                            pen.qCurveTo(*points)
-                        else:
-                            pen.curveTo(*points)
-                pen.closePath()
+                        pen.curveTo(*points)
+            pen.closePath()
+
+    def _parseGrid(self, data):
+        info = self._font.info
+
+        data = [l.strip() for l in data]
+        contours = self._parseSplineSet(data)
+
+        for contour in contours:
+            name = None
+            p0 = None
+            if not isinstance(contour[-1], (tuple, list)):
+                name = contour.pop()
+
+            if len(contour) > 2:
+                # UFO guidelines are simple straight lines, so I can handle any
+                # complex contours here.
+                continue
+
+            for command, points, flags in contour:
+                if   command == "m":
+                    p0 = points[0]
+                elif command == "l":
+                    p1 = points[0]
+
+                    x = None
+                    y = None
+                    angle = None
+
+                    if p0[0] == p1[0]:
+                        x = p0[0]
+                    elif p0[1] == p1[1]:
+                        y = p0[1]
+                    else:
+                        x = p0[0]
+                        y = p0[1]
+                        angle = math.atan2(p1[0] - p0[0], p1[1] - p0[1])
+                        angle = math.degrees(angle)
+                        if angle < 0:
+                            angle = 360 + angle
+                    info.appendGuideline(
+                        dict(x=x, y=y, name=name, angle=angle))
+                else:
+                    p0 = points[0]
 
     def _parseImage(self, glyph, data):
         pass # XXX
@@ -417,7 +468,8 @@ class SFDParser():
                     layerGlyph = layer[glyph.name]
             elif key == "SplineSet":
                 splines, i = self._getSection(data, i, "EndSplineSet")
-                self._parseSplineSet(layerGlyph, splines, quadratic)
+                contours = self._parseSplineSet(splines)
+                self._drawContours(layerGlyph, contours, quadratic)
             elif key == "Image":
                 image, i = self._getSection(data, i, "EndImage", value)
                 self._parseImage(layerGlyph, image)
@@ -722,8 +774,11 @@ class SFDParser():
                 self._parsePrivateDict(section)
             elif key == "BeginChars":
                 charData, i = self._getSection(data, i, "EndChars")
+            elif key == "Grid":
+                grid, i = self._getSection(data, i, "EndSplineSet")
+                self._parseGrid(grid)
 
-           #elif value is not None:
+           #else:
            #    print(key, value)
 
 
