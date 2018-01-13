@@ -8,6 +8,7 @@ import math
 import os
 import re
 
+from collections import OrderedDict
 from datetime import datetime
 
 from . import parseAltuni, parseAnchorPoint, parseColor, parseVersion, \
@@ -35,6 +36,26 @@ ANCHOR_RE = re.compile(
     "\s+(\S+)\s+(\d)"
 )
 DEVICETABLE_RE = re.compile("\s?{.*?}\s?")
+LOOKUP_RE = re.compile(
+    "(\d+)\s+(\d+)\s+(\d+)\s+" +
+    QUOTED_RE.pattern +
+    "\s+" +
+    "{(.*?)}" +
+    "\s+" +
+    "\[(.*?)\]"
+)
+TAG_RE = re.compile("'(.{,4})'")
+FEATURE_RE = re.compile(
+    TAG_RE.pattern +
+    "\s+" +
+    "\((.*.)\)"
+)
+LANGSYS_RE = re.compile(
+    TAG_RE.pattern +
+    "\s+" +
+    "<(.*?)>" +
+    "\s+"
+)
 
 
 def toFloat(value):
@@ -160,9 +181,12 @@ class SFDParser():
         self._ignore_uvs = ignore_uvs
         self._layers = []
         self._layerType = []
-        self._glyphRefs = {}
-        self._glyphKerns = {}
-        self._kernClasses = []
+        self._glyphRefs = OrderedDict()
+        self._glyphKerns = OrderedDict()
+        self._kernClasses = OrderedDict()
+        self._gsubLookups = OrderedDict()
+        self._gposLookups = OrderedDict()
+        self._lookupInfo = OrderedDict()
 
     def _parsePrivateDict(self, data):
         info = self._font.info
@@ -405,20 +429,23 @@ class SFDParser():
         n1, n2, name = m.groups()
         n1 = int(n1)
         n2 = int(n2)
+        name = SFDReadUTF7(name)
 
         first = data[i:i + n1 - 1]
         first = [v.split()[1:] for v in first]
+        first.insert(0, None)
         i += n1 - 1
 
         second = data[i:i + n2 - 1]
         second = [v.split()[1:] for v in second]
+        second.insert(0, None)
         i += n2 - 1
 
         kerns = data[i]
         kerns = DEVICETABLE_RE.split(kerns)
         kerns = [toFloat(k) for k in kerns if k]
 
-        self._kernClasses.append((first, second, kerns))
+        self._kernClasses[name] = (first, second, kerns)
 
         return i + 1
 
@@ -563,6 +590,71 @@ class SFDParser():
         # the references below.
         assert len(font.glyphOrder) == len(glyphOrderMap)
         font.glyphOrder = sorted(glyphOrderMap, key=glyphOrderMap.get)
+
+    _LOOKUP_TYPES = {
+        0x001: "gsub_single",
+        0x002: "gsub_multiple",
+        0x003: "gsub_alternate",
+        0x004: "gsub_ligature",
+        0x005: "gsub_context",
+        0x006: "gsub_contextchain",
+        # GSUB extension 7
+        0x008: "gsub_reversecchain",
+
+        0x0fd: "morx_indic",
+        0x0fe: "morx_context",
+        0x0ff: "morx_insert",
+
+        0x101: "gpos_single",
+        0x102: "gpos_pair",
+        0x103: "gpos_cursive",
+        0x104: "gpos_mark2base",
+        0x105: "gpos_mark2ligature",
+        0x106: "gpos_mark2mark",
+        0x107: "gpos_context",
+        0x108: "gpos_contextchain",
+        # GPOS extension 9
+        0x1ff: "kern_statemachine",
+
+        # lookup&0xff == lookup type for the appropriate table
+        # lookup>>8:     0=>GSUB, 1=>GPOS
+    }
+
+    _LOOKUP_FLAGS = {
+        1: "right_to_left",
+        2: "ignore_bases",
+        4: "ignore_ligatures",
+        8: "ignore_marks",
+    }
+
+    def _parseLookup(self, data):
+        m = LOOKUP_RE.match(data)
+        assert m
+
+        kind, flag, _, lookup, subtables, feature = m.groups()
+        kind = int(kind)
+        flag = int(flag)
+        lookup = SFDReadUTF7(lookup)
+        subtables = [SFDReadUTF7(v) for v in QUOTED_RE.findall(subtables)]
+
+        if kind >> 8: # GPOS
+            self._gposLookups[lookup] = subtables
+        else:
+            self._gsubLookups[lookup] = subtables
+
+        flags = []
+        for i, name in self._LOOKUP_FLAGS.items():
+            if flag & i:
+                flags.append(name)
+
+        features = []
+        for tag, langsys in FEATURE_RE.findall(feature):
+            features.append([tag])
+            for script, langs in LANGSYS_RE.findall(langsys):
+                features[-1].append((script, TAG_RE.findall(langs)))
+
+        self._lookupInfo[lookup] = (lookup, self._LOOKUP_TYPES[kind], flags,
+                                    features)
 
     _OFFSET_METRICS = {
         "HheadAOffset": "openTypeHheaAscender",
@@ -794,6 +886,8 @@ class SFDParser():
                 self._parseGrid(grid)
             elif key == "KernClass2":
                 i = self._parseKernClass(data, i, value)
+            elif key == "Lookup":
+                self._parseLookup(value)
             elif key == "XUID":
                 pass # XXX
             elif key == "UnicodeInterp":
@@ -837,9 +931,14 @@ class SFDParser():
 
         # We process all kern classes together so we can detect UFO group
         # overlap issue and act accordingly.
-        processKernClasses(self._font, self._kernClasses)
+        subtables = []
+        for lookup in self._gposLookups:
+            for subtable in self._gposLookups[lookup]:
+                if subtable in self._kernClasses:
+                    subtables.append(self._kernClasses[subtable])
+        processKernClasses(self._font, subtables)
 
-        # Need to run after parsing glyphs so that we can caluculate font
+        # Need to run after parsing glyphs so that we can calculate font
         # bounding box.
         self._fixOffsetMetrics(offsetMetrics)
 
