@@ -58,14 +58,6 @@ LANGSYS_RE = re.compile(
 )
 
 
-def toFloat(value):
-    """Convert value to integer if possible, else to float."""
-    try:
-        return int(value)
-    except ValueError:
-        return float(value)
-
-
 class SFDParser():
     """Parses an SFD file or SFDIR directory."""
 
@@ -94,9 +86,9 @@ class SFDParser():
             assert len(value) == int(n)
 
             if value.startswith("[") and value.endswith("]"):
-                value = [toFloat(n) for n in value[1:-1].split(" ")]
+                value = [float(n) for n in value[1:-1].split(" ")]
             else:
-                value = toFloat(value)
+                value = float(value)
 
             if   key == "BlueValues":
                 info.postscriptBlueValues = value
@@ -230,7 +222,7 @@ class SFDParser():
                 contours[-1].append(name)
             else:
                 points, command, flags = [c.strip() for c in GLYPH_COMMAND_RE.split(line)]
-                points = [toFloat(c) for c in points.split(" ")]
+                points = [float(c) for c in points.split(" ")]
                 points = [points[j:j + 2] for j in range(0, len(points), 2)]
                 if   command == "m":
                     assert len(points) == 1
@@ -315,7 +307,7 @@ class SFDParser():
         self._glyphKerns[glyph.name] = []
         for (gid, kern, subtable) in kerns:
             gid = int(gid)
-            kern = toFloat(kern)
+            kern = float(kern)
             self._glyphKerns[glyph.name].append((gid, kern))
 
     def _parseKernClass(self, data, i, value):
@@ -337,7 +329,7 @@ class SFDParser():
 
         kerns = data[i]
         kerns = DEVICETABLE_RE.split(kerns)
-        kerns = [toFloat(k) for k in kerns if k]
+        kerns = [float(k) for k in kerns if k]
 
         self._kernClasses[name] = (first, second, kerns)
 
@@ -348,8 +340,8 @@ class SFDParser():
         assert m
         name, x, y, kind, index = m.groups()
         name = SFDReadUTF7(name)
-        x = toFloat(x)
-        y = toFloat(y)
+        x = float(x)
+        y = float(y)
         index = int(index)
 
         glyph.appendAnchor(parseAnchorPoint([name, kind, x, y, index]))
@@ -455,7 +447,7 @@ class SFDParser():
             for ref in refs:
                 ref = ref.split()
                 name = self._font.glyphOrder[int(ref[0])]
-                matrix = [toFloat(v) for v in ref[3:9]]
+                matrix = [float(v) for v in ref[3:9]]
                 pen.addComponent(name, matrix)
 
     def _processKerns(self):
@@ -613,7 +605,7 @@ class SFDParser():
             if i == 1:
                 if key != "SplineFontDB":
                     raise Exception("Not an SFD file.")
-                version = toFloat(value)
+                version = float(value)
                 if version != 3.0:
                     raise Exception("Unsupported SFD version: %f" % version)
 
@@ -646,19 +638,19 @@ class SFDParser():
             elif key == "Version":
                 info.versionMajor, info.versionMinor = parseVersion(value)
             elif key == "ItalicAngle":
-                info.italicAngle = info.postscriptSlantAngle = toFloat(value)
+                info.italicAngle = info.postscriptSlantAngle = float(value)
             elif key == "UnderlinePosition":
-                info.postscriptUnderlinePosition = toFloat(value)
+                info.postscriptUnderlinePosition = float(value)
             elif key == "UnderlineWidth":
-                info.postscriptUnderlineThickness = toFloat(value)
+                info.postscriptUnderlineThickness = float(value)
             elif key in "Ascent":
-                info.ascender = toFloat(value)
+                info.ascender = float(value)
             elif key in "Descent":
-                info.descender = -toFloat(value)
+                info.descender = -float(value)
             elif key == "sfntRevision":
                 pass # info.XXX = int(value, 16)
             elif key == "WidthSeparation":
-                pass # XXX = toFloat(value) # auto spacing
+                pass # XXX = float(value) # auto spacing
             elif key == "LayerCount":
                 self._layers = int(value) * [None]
                 self._layerType = int(value) * [None]
