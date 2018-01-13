@@ -759,6 +759,14 @@ class SFDParser():
                 self._parseNames(value)
             elif key == "GaspTable":
                 self._parseGaspTable(value)
+            elif key == "BeginPrivate":
+                section, i = self._getSection(data, i, "EndPrivate", value)
+                self._parsePrivateDict(section)
+            elif key == "BeginChars":
+                charData, i = self._getSection(data, i, "EndChars")
+            elif key == "Grid":
+                grid, i = self._getSection(data, i, "EndSplineSet")
+                self._parseGrid(grid)
             elif key == "XUID":
                 pass # XXX
             elif key == "UnicodeInterp":
@@ -769,14 +777,6 @@ class SFDParser():
                 pass
             elif key == "EndSplineFont":
                 break
-            elif key == "BeginPrivate":
-                section, i = self._getSection(data, i, "EndPrivate", value)
-                self._parsePrivateDict(section)
-            elif key == "BeginChars":
-                charData, i = self._getSection(data, i, "EndChars")
-            elif key == "Grid":
-                grid, i = self._getSection(data, i, "EndSplineSet")
-                self._parseGrid(grid)
 
            #else:
            #    print(key, value)
