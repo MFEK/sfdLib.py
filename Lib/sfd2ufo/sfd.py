@@ -13,10 +13,25 @@ from . import parseAltuni, parseAnchorPoint, parseColor, parseVersion
 from . import FONTFORGE_PREFIX
 
 
-QUOTED_LIST_RE = re.compile('(".*?")')
-LAYER_RE = re.compile("(.)\s+(.)\s+" + QUOTED_LIST_RE.pattern + "\s+(.?)")
+QUOTED_RE = re.compile('(".*?")')
+NUMBER_RE = re.compile("(-?\d*\.*\d+)")
+LAYER_RE = re.compile("(.)\s+(.)\s+" + QUOTED_RE.pattern + "\s+(.?)")
 GLYPH_COMMAND_RE = re.compile('(\s[lmc]\s)')
-KERNS_RE = re.compile("(-?\d+)\s+(-?\d+)\s+" + QUOTED_LIST_RE.pattern)
+KERNS_RE = re.compile(
+    NUMBER_RE.pattern +
+    "\s+" +
+    NUMBER_RE.pattern +
+    "\s+" +
+    QUOTED_RE.pattern
+)
+ANCHOR_RE = re.compile(
+    QUOTED_RE.pattern +
+    "\s+" +
+    NUMBER_RE.pattern +
+    "\s+" +
+    NUMBER_RE.pattern +
+    "\s+(\S+)\s+(\d)"
+)
 
 
 def toFloat(value):
@@ -250,7 +265,7 @@ class SFDParser():
             return
 
         langId = int(data[0])
-        data = QUOTED_LIST_RE.findall(data[1])
+        data = QUOTED_RE.findall(data[1])
 
         for nameId, name in enumerate(data):
             name = SFDReadUTF7(name)
@@ -385,16 +400,13 @@ class SFDParser():
            #    print(key, value)
 
     def _parseAnchorPoint(self, glyph, data):
-        _, name, attrs =  QUOTED_LIST_RE.split(data)
+        m = ANCHOR_RE.match(data)
+        assert m
+        name, x, y, kind, index = m.groups()
         name = SFDReadUTF7(name)
-
-        attrs = attrs.strip().split(" ")
-        assert len(attrs) == 4
-
-        x = toFloat(attrs[0])
-        y = toFloat(attrs[1])
-        kind = attrs[2]
-        index = int(attrs[3])
+        x = toFloat(x)
+        y = toFloat(y)
+        index = int(index)
 
         glyph.appendAnchor(parseAnchorPoint([name, kind, x, y, index]))
 
