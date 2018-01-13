@@ -67,6 +67,42 @@ def getFontBounds(bounds):
     return dict(xMin=bbox[0], yMin=bbox[1], xMax=bbox[2], yMax=bbox[3])
 
 
+def kernClassesToUFO(subtables, prefix="public"):
+    groups = {}
+    kerning = {}
+
+    for i, (groups1, groups2, kerns) in enumerate(subtables):
+        for j, group1 in enumerate(groups1):
+            for k, group2 in enumerate(groups2):
+                kern = kerns[(j * len(groups2)) + k]
+                if group1 is not None and group2 is not None and kern != 0:
+                    name1 = "%s.kern1.kc%d_%d" % (prefix, i, j)
+                    name2 = "%s.kern2.kc%d_%d" % (prefix, i, k)
+                    if name1 not in groups:
+                        groups[name1] = group1
+                    if name2 not in groups:
+                        groups[name2] = group2
+                    assert groups[name1] == group1
+                    assert groups[name2] == group2
+                    kerning[name1, name2] = kern
+
+    return groups, kerning
+
+def processKernClasses(font, subtables):
+    groups, kerning = kernClassesToUFO(subtables)
+    valid, _ = groupsValidator(groups)
+    if not valid:
+        # If groupsValidator() thinks these groups are invalid, ufoLib will
+        # refuse to save the files. Most likely the cause is glyphs
+        # appearing in several kerning groups. Since UFO kerning is too
+        # dumb to represent this, lets cheat on ufoLib and use our private
+        # prefix for group names which would prevent it from attempting to
+        # “validate” them.
+        groups, kerning = kernClassesToUFO(subtables, FONTFORGE_PREFIX)
+
+    font.groups.update(groups)
+    font.kerning.update(kerning)
+
 class SFDFont(Font):
 
     def __init__(self, path, ignore_uvs=False):
@@ -300,27 +336,6 @@ class SFDFont(Font):
             for anchor in sfdGlyph.anchorPoints:
                 glyph.appendAnchor(parseAnchorPoint(anchor))
 
-    def _classKerningToUFO(self, subtables, prefix="public"):
-        groups = {}
-        kerning = {}
-
-        for i, (groups1, groups2, kerns) in enumerate(subtables):
-            for j, group1 in enumerate(groups1):
-                for k, group2 in enumerate(groups2):
-                    kern = kerns[(j * len(groups2)) + k]
-                    if group1 is not None and group2 is not None and kern != 0:
-                        name1 = "%s.kern1.kc%d_%d" % (prefix, i, j)
-                        name2 = "%s.kern2.kc%d_%d" % (prefix, i, k)
-                        if name1 not in groups:
-                            groups[name1] = group1
-                        if name2 not in groups:
-                            groups[name2] = group2
-                        assert groups[name1] == group1
-                        assert groups[name2] == group2
-                        kerning[name1, name2] = kern
-
-        return groups, kerning
-
     def _buildKerning(self):
         sfd = self._sfd
 
@@ -359,20 +374,7 @@ class SFDFont(Font):
                             # to the feature file.
                             sfdGlyph.removePosSub(subtable)
 
-        groups, kerning = self._classKerningToUFO(subtables)
-        valid, _ = groupsValidator(groups)
-        if not valid:
-            # If groupsValidator() thinks these groups are invalid, ufoLib will
-            # refuse to save the files. Most likely the cause is glyphs
-            # appearing in several kerning groups. Since UFO kerning is too
-            # dumb to represent this, lets cheat on ufoLib and use our private
-            # prefix for group names which would prevent it from attempting to
-            # “validate” them.
-            groups, kerning = self._classKerningToUFO(subtables,
-                prefix=FONTFORGE_PREFIX)
-
-        self.groups.update(groups)
-        self.kerning.update(kerning)
+        processKernClasses(self, subtables)
 
     def _buildFeatures(self):
         if hasattr(self._sfd, "generateFeatureString"):

@@ -11,7 +11,7 @@ import re
 from datetime import datetime
 
 from . import parseAltuni, parseAnchorPoint, parseColor, parseVersion, \
-              getFontBounds
+              getFontBounds, processKernClasses
 from . import FONTFORGE_PREFIX
 
 
@@ -34,6 +34,7 @@ ANCHOR_RE = re.compile(
     NUMBER_RE.pattern +
     "\s+(\S+)\s+(\d)"
 )
+DEVICETABLE_RE = re.compile("\s?{.*?}\s?")
 
 
 def toFloat(value):
@@ -161,6 +162,7 @@ class SFDParser():
         self._layerType = []
         self._glyphRefs = {}
         self._glyphKerns = {}
+        self._kernClasses = []
 
     def _parsePrivateDict(self, data):
         info = self._font.info
@@ -397,6 +399,28 @@ class SFDParser():
             gid = int(gid)
             kern = toFloat(kern)
             self._glyphKerns[glyph.name].append((gid, kern))
+
+    def _parseKernClass(self, data, i, value):
+        m = KERNS_RE.match(value)
+        n1, n2, name = m.groups()
+        n1 = int(n1)
+        n2 = int(n2)
+
+        first = data[i:i + n1 - 1]
+        first = [v.split()[1:] for v in first]
+        i += n1 - 1
+
+        second = data[i:i + n2 - 1]
+        second = [v.split()[1:] for v in second]
+        i += n2 - 1
+
+        kerns = data[i]
+        kerns = DEVICETABLE_RE.split(kerns)
+        kerns = [toFloat(k) for k in kerns if k]
+
+        self._kernClasses.append((first, second, kerns))
+
+        return i + 1
 
     def _parseAnchorPoint(self, glyph, data):
         m = ANCHOR_RE.match(data)
@@ -768,6 +792,8 @@ class SFDParser():
             elif key == "Grid":
                 grid, i = self._getSection(data, i, "EndSplineSet")
                 self._parseGrid(grid)
+            elif key == "KernClass2":
+                i = self._parseKernClass(data, i, value)
             elif key == "XUID":
                 pass # XXX
             elif key == "UnicodeInterp":
@@ -808,6 +834,10 @@ class SFDParser():
 
         # Same for kerning.
         self._processKerns()
+
+        # We process all kern classes together so we can detect UFO group
+        # overlap issue and act accordingly.
+        processKernClasses(self._font, self._kernClasses)
 
         # Need to run after parsing glyphs so that we can caluculate font
         # bounding box.
