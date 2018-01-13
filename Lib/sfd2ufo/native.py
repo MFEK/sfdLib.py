@@ -244,8 +244,8 @@ class SFDParser():
                 self._layerMap[name] = self._font.newLayer(name)
 
     def _buildGlyphs(self):
-        for sfdGlyph in self._sfd.glyphs():
-            name = sfdGlyph.glyphname
+        for name in self._sfd:
+            sfdGlyph = self._sfd[name]
             for sfdLayerName in sfdGlyph.layers:
                 sfdLayer = sfdGlyph.layers[sfdLayerName]
                 sfdLayerRefs = sfdGlyph.layerrefs[sfdLayerName]
@@ -295,8 +295,8 @@ class SFDParser():
                     sfd.removeLookupSubtable(subtable)
                 elif lookpinfo[0] == "gpos_pair":
                     # Non-class kerning.
-                    for sfdGlyph in sfd.glyphs():
-                        name1 = sfdGlyph.glyphname
+                    for name1 in sfd:
+                        sfdGlyph = sfd[name1]
                         unsupportedPair = False
                         kerning = {}
                         for pos in sfdGlyph.getPosSub(subtable):
