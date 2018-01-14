@@ -281,6 +281,9 @@ class SFDParser():
 
             for anchor in sfdGlyph.anchorPoints:
                 glyph.appendAnchor(parseAnchorPoint(anchor))
+            # Now remove the anchors so that we don’t export them to the
+            # feature file.
+            sfdGlyph.anchorPoints = []
 
     def _buildKerning(self):
         sfd = self._sfd
