@@ -263,7 +263,7 @@ class SFDParser():
             if not isinstance(contour[-1], (tuple, list)):
                 name = contour.pop()
 
-            if len(contour) > 2:
+            if len(contour) != 2:
                 # UFO guidelines are simple straight lines, so I can handle any
                 # complex contours here.
                 continue
