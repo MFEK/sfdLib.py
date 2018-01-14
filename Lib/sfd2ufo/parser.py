@@ -569,6 +569,60 @@ class SFDParser():
 
             setattr(info, metric, value)
 
+    def _writeGDEF(self):
+        font = self._font
+        classNames = OrderedDict()
+        classNames["baseglyph"] = "@GDEF_Simple"
+        classNames["baseligature"] = "@GDEF_Ligature"
+        classNames["mark"] = "@GDEF_Mark"
+        classNames["component"] = "@GDEF_Component"
+        gdef = {}
+        for name in font.glyphOrder:
+            glyph = font[name]
+            glyphclass = glyph.lib.get(FONTFORGE_PREFIX + ".glyphclass")
+            if glyphclass is None:
+                glyphclass = "baseglyph"
+            if glyphclass not in gdef:
+                gdef[glyphclass] = []
+            gdef[glyphclass].append(name)
+
+        # Ugly code to match FontForge output for easy comparison, should be
+        # cleaned up once the dust settles.
+        lines = []
+        lines.append("#Mark attachment classes (defined in GDEF, used in lookupflags)")
+        lines.append("")
+        for name in classNames:
+            if name not in gdef:
+                continue
+            classname = classNames[name]
+            glyphs = gdef[name]
+            lines.append("%s = [" % classname)
+            n = len(classname) + 8
+            for glyph in glyphs:
+                if n + len(glyph) + 1 > 80:
+                    lines[-1] += "\n\t"
+                    n = 8
+                lines[-1] += "\\" + glyph + " "
+                n += len(glyph) + 1
+            lines[-1] += "];"
+        names = []
+        for name in classNames:
+            classname = ""
+            if name in gdef:
+                classname = classNames[name]
+            names.append(classname)
+        lines.append("")
+        lines.append("table GDEF {")
+        lines.append("  GlyphClassDef " + ", ".join(names) + ";")
+        lines.append("")
+        lines.append("} GDEF;")
+        lines.append("")
+        lines.append("")
+
+        if font.features.text is None:
+            font.features.text = ""
+        font.features.text += "\n".join(lines)
+
     def parse(self):
         isdir = os.path.isdir(self._path)
         if isdir:
@@ -824,6 +878,8 @@ class SFDParser():
         # Need to run after parsing glyphs so that we can calculate font
         # bounding box.
         self._fixOffsetMetrics(offsetMetrics)
+
+        self._writeGDEF()
 
         # FontForge does not have an explicit UPEM setting, it is the sum of its
         # ascender and descender.
