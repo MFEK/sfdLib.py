@@ -73,6 +73,7 @@ class SFDParser():
         self._gsubLookups = OrderedDict()
         self._gposLookups = OrderedDict()
         self._lookupInfo = OrderedDict()
+        self._ligatureCarets = OrderedDict()
 
     def _parsePrivateDict(self, data):
         info = self._font.info
@@ -423,6 +424,12 @@ class SFDParser():
             elif key == "UnlinkRmOvrlpSave":
                 v = bool(int(value))
                 glyph.lib[FONTFORGE_PREFIX + ".decomposeAndRemoveOverlap"] = v
+            elif key == "LCarets2":
+                v = [int(v) for v in value.split(" ")]
+                num = v.pop(0)
+                if any(v):
+                    assert len(v) == num
+                    self._ligatureCarets[glyph.name] = v
             elif key in ("HStem", "VStem", "DStem2", "CounterMasks"):
                 pass # XXX
             elif key == "Flags":
@@ -615,6 +622,10 @@ class SFDParser():
         lines.append("table GDEF {")
         lines.append("  GlyphClassDef " + ", ".join(names) + ";")
         lines.append("")
+        if self._ligatureCarets:
+            for k, v in self._ligatureCarets.items():
+                v = [str(i) for i in v]
+                lines.append("  LigatureCaretByPos \%s %s;" % (k, " ".join(v)))
         lines.append("} GDEF;")
         lines.append("")
         lines.append("")
