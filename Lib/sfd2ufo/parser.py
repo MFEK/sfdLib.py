@@ -56,6 +56,7 @@ LANGSYS_RE = re.compile(
     "<(.*?)>" +
     "\s+"
 )
+SUBPOS_RE = re.compile(QUOTED_RE.pattern + "\s+(.*.)")
 
 
 class SFDParser():
@@ -69,6 +70,7 @@ class SFDParser():
         self._layerType = []
         self._glyphRefs = OrderedDict()
         self._glyphKerns = OrderedDict()
+        self._glyphPosSub = OrderedDict()
         self._kernClasses = OrderedDict()
         self._gsubLookups = OrderedDict()
         self._gposLookups = OrderedDict()
@@ -344,6 +346,26 @@ class SFDParser():
 
         glyph.appendAnchor(parseAnchorPoint([name, kind, x, y, index]))
 
+    def _parsePosSub(self, glyph, key, data):
+        m = SUBPOS_RE.match(data)
+        assert m
+
+        key = key[:-1]
+
+        subtable, possub = m.groups()
+        subtable = SFDReadUTF7(subtable)
+        possub = possub.strip().split()
+
+        if glyph.name not in self._glyphPosSub:
+            self._glyphPosSub[glyph.name] = OrderedDict()
+
+        if key in ("Ligature", "Substitution", "AlternateSubs", "MultipleSubs"):
+            if subtable not in self._glyphPosSub[glyph.name]:
+                self._glyphPosSub[glyph.name][subtable] = []
+            self._glyphPosSub[glyph.name][subtable].append((key, possub))
+        else:
+            pass # XXX
+
     _LAYER_KEYWORDS = ["Back", "Fore", "Layer"]
 
     _GLYPH_CLASSES = [
@@ -430,6 +452,9 @@ class SFDParser():
                 if any(v):
                     assert len(v) == num
                     self._ligatureCarets[glyph.name] = v
+            elif key in ("Position2", "PairPos2", "Ligature2", "Substitution2",
+                         "AlternateSubs2", "MultipleSubs2"):
+                self._parsePosSub(glyph, key, value)
             elif key in ("HStem", "VStem", "DStem2", "CounterMasks"):
                 pass # XXX
             elif key == "Flags":
@@ -511,10 +536,10 @@ class SFDParser():
     }
 
     _LOOKUP_FLAGS = {
-        1: "right_to_left",
-        2: "ignore_bases",
-        4: "ignore_ligatures",
-        8: "ignore_marks",
+        1: "RightToLeft",
+        2: "IgnoreBaseGlyphs",
+        4: "IgnoreLigatures",
+        8: "IgnoreMarks",
     }
 
     def _parseLookup(self, data):
@@ -543,8 +568,7 @@ class SFDParser():
             for script, langs in LANGSYS_RE.findall(langsys):
                 features[-1].append((script, TAG_RE.findall(langs)))
 
-        self._lookupInfo[lookup] = (lookup, self._LOOKUP_TYPES[kind], flags,
-                                    features)
+        self._lookupInfo[lookup] = (self._LOOKUP_TYPES[kind], flags, features)
 
     _OFFSET_METRICS = {
         "HheadAOffset": "openTypeHheaAscender",
@@ -628,6 +652,107 @@ class SFDParser():
                 lines.append("  LigatureCaretByPos \%s %s;" % (k, " ".join(v)))
         lines.append("} GDEF;")
         lines.append("")
+        lines.append("")
+
+        if font.features.text is None:
+            font.features.text = ""
+        font.features.text += "\n".join(lines)
+
+    def _santizeLookupName(self, name):
+        out = ""
+        for i, ch in enumerate(name):
+            if ord(ch) < 127 and \
+              (ch.isalpha() or ch in (".", "_") or (i != 0 and ch.isdigit())):
+                out += ch
+        return out[:31]
+
+    def _writeGSUBGPOS(self, isgpos=False):
+        # Ugly as hell, rewrite later.
+        font = self._font
+
+        lookups = isgpos and self._gposLookups or self._gsubLookups
+
+        if not lookups:
+            return
+
+        featureSet = []
+        scriptSet = set()
+        langSet = {}
+        for lookup in lookups:
+            _, _, fealangsys = self._lookupInfo[lookup]
+            for feature in fealangsys:
+                if feature[0] not in featureSet:
+                    featureSet.append(feature[0])
+                for script, languages in feature[1:]:
+                    scriptSet.add(script)
+                    if script not in langSet:
+                        langSet[script] = set()
+                    langSet[script].update(languages)
+
+        scriptSet = sorted(scriptSet)
+        langSet = {s: sorted(langSet[s], key=lambda l: l == "dflt" and "0" or l) for s in langSet}
+
+        features = OrderedDict()
+        for feature in featureSet:
+            outf = OrderedDict()
+            for script in scriptSet:
+                outs = OrderedDict()
+                for language in langSet[script]:
+                    outl = []
+                    for lookup in lookups:
+                        _, _, fealangsys = self._lookupInfo[lookup]
+                        for fl in fealangsys:
+                            if feature == fl[0]:
+                                for sl in fl[1:]:
+                                    if script == sl[0]:
+                                        for ll in sl[1]:
+                                            if language == ll:
+                                                outl.append(self._santizeLookupName(lookup))
+                    if outl:
+                        outs[language] = outl
+                if outs:
+                    outf[script] = outs
+            if outf:
+                features[feature] = outf
+
+        lines = []
+        lines.append("")
+        lines.append("# %s " % (isgpos and "GPOS" or "GSUB"))
+        lines.append("")
+
+        for lookup in lookups:
+            kind, flags, _ = self._lookupInfo[lookup]
+            flags = flags and " ".join(flags) or "0"
+            lines.append("")
+            lines.append("lookup %s {" % self._santizeLookupName(lookup))
+            lines.append("  lookupflag %s;" % flags)
+            for i, subtable in enumerate(lookups[lookup]):
+                for glyph in self._glyphPosSub:
+                    if subtable in self._glyphPosSub[glyph]:
+                        for possub in self._glyphPosSub[glyph][subtable]:
+                            possub = " \\".join(possub[1])
+                            if   kind in ("gsub_single", "gsub_multiple"):
+                                lines.append("    sub \\%s by \\%s ;" % (glyph, possub))
+                            elif kind == "gsub_alternate":
+                                lines.append("    sub \\%s from [\\%s ];" % (glyph, possub))
+                            elif kind == "gsub_ligature":
+                                lines.append("    sub \\%s  by \\%s;" % (possub, glyph))
+                            else:
+                                assert False, (kind, possub)
+            lines.append("} %s;" % self._santizeLookupName(lookup))
+
+        for feature in features:
+            lines.append("")
+            lines.append("feature %s {" % feature)
+            for script in features[feature]:
+                lines.append("")
+                lines.append("  script %s;" % script)
+                for language in features[feature][script]:
+                    lines.append("     language %s %s;" % (language, language != "dflt" and "exclude_dflt" or ""))
+                    for lookup in features[feature][script][language]:
+                        lines.append("      lookup %s;" % lookup)
+            lines.append("} %s;" % feature)
+
         lines.append("")
 
         if font.features.text is None:
@@ -890,6 +1015,8 @@ class SFDParser():
         # bounding box.
         self._fixOffsetMetrics(offsetMetrics)
 
+        self._writeGSUBGPOS(isgpos=False)
+       #self._writeGSUBGPOS(isgpos=True)
         self._writeGDEF()
 
         # FontForge does not have an explicit UPEM setting, it is the sum of its
