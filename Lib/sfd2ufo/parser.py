@@ -359,12 +359,18 @@ class SFDParser():
         if glyph.name not in self._glyphPosSub:
             self._glyphPosSub[glyph.name] = OrderedDict()
 
-        if key in ("Ligature", "Substitution", "AlternateSubs", "MultipleSubs"):
+        if  key == "Position":
+            possub = [int(p.split("=")[1]) for p in possub]
+        elif key == "PairPos":
+            possub = possub[:1] + [int(p.split("=")[1]) for p in possub[1:]]
+
+        if key in ("Ligature", "Substitution", "AlternateSubs", "MultipleSubs",
+                   "Position", "PairPos"):
             if subtable not in self._glyphPosSub[glyph.name]:
                 self._glyphPosSub[glyph.name][subtable] = []
             self._glyphPosSub[glyph.name][subtable].append((key, possub))
         else:
-            pass # XXX
+            assert False, (key, possub)
 
     _LAYER_KEYWORDS = ["Back", "Fore", "Layer"]
 
@@ -729,14 +735,24 @@ class SFDParser():
             for i, subtable in enumerate(lookups[lookup]):
                 for glyph in self._glyphPosSub:
                     if subtable in self._glyphPosSub[glyph]:
-                        for possub in self._glyphPosSub[glyph][subtable]:
-                            possub = " \\".join(possub[1])
+                        for _, possub in self._glyphPosSub[glyph][subtable]:
+                            if kind.startswith("gsub_"):
+                                possub = " \\".join(possub)
+
                             if   kind in ("gsub_single", "gsub_multiple"):
                                 lines.append("    sub \\%s by \\%s ;" % (glyph, possub))
                             elif kind == "gsub_alternate":
                                 lines.append("    sub \\%s from [\\%s ];" % (glyph, possub))
                             elif kind == "gsub_ligature":
                                 lines.append("    sub \\%s  by \\%s;" % (possub, glyph))
+                            elif kind == "gpos_single":
+                                possub = " ".join([str(v) for v in possub])
+                                lines.append("    pos \\%s <%s>;" % (glyph, possub))
+                            elif kind == "gpos_pair":
+                                glyph2 = possub.pop(0)
+                                pos1 = " ".join([str(v) for v in possub[:4]])
+                                pos2 = " ".join([str(v) for v in possub[4:]])
+                                lines.append("    pos \\%s <%s> \\%s <%s>;" % (glyph, pos1, glyph2, pos2))
                             else:
                                 assert False, (kind, possub)
             lines.append("} %s;" % self._santizeLookupName(lookup))
@@ -1016,7 +1032,7 @@ class SFDParser():
         self._fixOffsetMetrics(offsetMetrics)
 
         self._writeGSUBGPOS(isgpos=False)
-       #self._writeGSUBGPOS(isgpos=True)
+        self._writeGSUBGPOS(isgpos=True)
         self._writeGDEF()
 
         # FontForge does not have an explicit UPEM setting, it is the sum of its
