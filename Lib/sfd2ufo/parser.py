@@ -676,7 +676,16 @@ class SFDParser():
         # Ugly as hell, rewrite later.
         font = self._font
 
-        lookups = isgpos and self._gposLookups or self._gsubLookups
+        if isgpos:
+            tableLookups = self._gposLookups
+        else:
+            tableLookups = self._gsubLookups
+
+        # Prune empty lookups
+        lookups = OrderedDict()
+        for lookup, subtables in tableLookups.items():
+            if any(any(s in self._glyphPosSub[g] for s in subtables) for g in self._glyphPosSub):
+                lookups[lookup] = subtables
 
         if not lookups:
             return
