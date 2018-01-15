@@ -618,7 +618,16 @@ class SFDParser():
             glyph = font[name]
             glyphclass = glyph.lib.get(FONTFORGE_PREFIX + ".glyphclass")
             if glyphclass is None:
+                if name == ".notdef":
+                    continue
                 glyphclass = "baseglyph"
+                if name in self._glyphPosSub:
+                    for subtable in self._glyphPosSub[name]:
+                        for kind, _ in self._glyphPosSub[name][subtable]:
+                            if kind == "Ligature":
+                                glyphclass = "baseligature"
+                                break
+
             if glyphclass not in gdef:
                 gdef[glyphclass] = []
             gdef[glyphclass].append(name)
