@@ -9,7 +9,7 @@ import math
 
 from .utils import parseAltuni, parseAnchorPoint, parseColor, parseVersion, \
                    getFontBounds, processKernClasses
-from .utils import FONTFORGE_PREFIX
+from .utils import GLYPHCLASS_KEY, DECOMPOSEREMOVEOVERLAP_KEY
 
 
 class SFDParser():
@@ -267,9 +267,9 @@ class SFDParser():
                     glyph.markColor = parseColor(sfdGlyph.color)
                 if layer == self._font.layers.defaultLayer:
                     if sfdGlyph.glyphclass != "automatic":
-                        glyph.lib[FONTFORGE_PREFIX + ".glyphclass"] = sfdGlyph.glyphclass
+                        glyph.lib[GLYPHCLASS_KEY] = sfdGlyph.glyphclass
                     if sfdGlyph.unlinkRmOvrlpSave:
-                        glyph.lib[FONTFORGE_PREFIX + ".decomposeAndRemoveOverlap"] = True
+                        glyph.lib[DECOMPOSEREMOVEOVERLAP_KEY] = True
 
             glyph = self._font[name]
             unicodes = []

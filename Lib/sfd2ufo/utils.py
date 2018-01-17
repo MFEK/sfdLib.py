@@ -6,6 +6,8 @@ from fontTools.misc.py23 import *
 from ufoLib.validators import groupsValidator
 
 FONTFORGE_PREFIX = "org.fontforge"
+GLYPHCLASS_KEY = FONTFORGE_PREFIX + ".glyphclass"
+DECOMPOSEREMOVEOVERLAP_KEY = FONTFORGE_PREFIX + ".decomposeAndRemoveOverlap"
 
 def parseVersion(version):
     versionMajor = ""

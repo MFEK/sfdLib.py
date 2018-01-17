@@ -13,7 +13,7 @@ from datetime import datetime
 
 from .utils import parseAltuni, parseAnchorPoint, parseColor, parseVersion, \
                    getFontBounds, processKernClasses, SFDReadUTF7
-from .utils import FONTFORGE_PREFIX
+from .utils import GLYPHCLASS_KEY, DECOMPOSEREMOVEOVERLAP_KEY
 
 
 QUOTED_RE = re.compile('(".*?")')
@@ -416,8 +416,7 @@ class SFDParser():
                 altuni = [altuni[j:j + 3] for j in range(0, len(altuni), 3)]
                 unicodes += parseAltuni(altuni, self._ignore_uvs)
             elif key == "GlyphClass":
-                glyphclass = self._GLYPH_CLASSES[int(value)]
-                glyph.lib[FONTFORGE_PREFIX + ".glyphclass"] = glyphclass
+                glyph.lib[GLYPHCLASS_KEY] = self._GLYPH_CLASSES[int(value)]
             elif key == "AnchorPoint":
                 self._parseAnchorPoint(glyph, value)
             elif key in self._LAYER_KEYWORDS:
@@ -450,8 +449,7 @@ class SFDParser():
             elif key == "Comment":
                 glyph.note = SFDReadUTF7(value)
             elif key == "UnlinkRmOvrlpSave":
-                v = bool(int(value))
-                glyph.lib[FONTFORGE_PREFIX + ".decomposeAndRemoveOverlap"] = v
+                glyph.lib[DECOMPOSEREMOVEOVERLAP_KEY] = bool(int(value))
             elif key == "LCarets2":
                 v = [int(v) for v in value.split(" ")]
                 num = v.pop(0)
@@ -616,7 +614,7 @@ class SFDParser():
         gdef = {}
         for name in font.glyphOrder:
             glyph = font[name]
-            glyphclass = glyph.lib.get(FONTFORGE_PREFIX + ".glyphclass")
+            glyphclass = glyph.lib.get(GLYPHCLASS_KEY)
             if glyphclass is None:
                 if name == ".notdef":
                     continue
