@@ -242,6 +242,7 @@ class SFDParser():
         for contour in contours:
             if not isinstance(contour[-1], (tuple, list)):
                 name = contour.pop()
+            prev = []
             for command, points, flags in contour:
                 if   command == "m":
                     pen.moveTo(*points)
@@ -249,11 +250,19 @@ class SFDParser():
                     pen.lineTo(*points)
                 else:
                     if quadratic:
-                        points.pop(0) # XXX I don’t know what I’m doing
-                        pen.qCurveTo(*points)
+                        # XXX I don’t know what I’m doing
+                        assert points[0] == points[1]
+                        points.pop(0)
+                        flag = int(flags.split(",")[0])
+                        assert not (flag & 0x400)
+                        if flag & 0x80: # SFD_PTFLAG_INTERPOLATE
+                            prev += points[:-1]
+                        else:
+                            pen.qCurveTo(*(prev + points))
+                            prev = []
                     else:
                         pen.curveTo(*points)
-            pen.closePath()
+            pen.endPath()
 
     def _parseGrid(self, data):
         info = self._font.info
