@@ -5,9 +5,9 @@ from fontTools.misc.py23 import *
 
 from ufoLib.validators import groupsValidator
 
-FONTFORGE_PREFIX = "org.fontforge"
-GLYPHCLASS_KEY = FONTFORGE_PREFIX + ".glyphclass"
-DECOMPOSEREMOVEOVERLAP_KEY = FONTFORGE_PREFIX + ".decomposeAndRemoveOverlap"
+SFDLIB_PREFIX = "org.sfdlib"
+GLYPHCLASS_KEY = SFDLIB_PREFIX + ".glyphclass"
+DECOMPOSEREMOVEOVERLAP_KEY = SFDLIB_PREFIX + ".decomposeAndRemoveOverlap"
 
 def parseVersion(version):
     versionMajor = ""
@@ -97,7 +97,7 @@ def processKernClasses(font, subtables):
         # dumb to represent this, lets cheat on ufoLib and use our private
         # prefix for group names which would prevent it from attempting to
         # “validate” them.
-        groups, kerning = kernClassesToUFO(subtables, FONTFORGE_PREFIX)
+        groups, kerning = kernClassesToUFO(subtables, SFDLIB_PREFIX)
 
     font.groups.update(groups)
     font.kerning.update(kerning)
