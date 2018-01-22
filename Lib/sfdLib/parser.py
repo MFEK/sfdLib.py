@@ -243,7 +243,12 @@ class SFDParser():
             if not isinstance(contour[-1], (tuple, list)):
                 name = contour.pop()
             prev = []
+            firstPt = None
+            lastPt = None
             for command, points, flags in contour:
+                if firstPt is None:
+                    firstPt = points[0]
+                lastPt = points[-1]
                 if   command == "m":
                     pen.moveTo(*points)
                 elif command == "l":
@@ -262,7 +267,11 @@ class SFDParser():
                             prev = []
                     else:
                         pen.curveTo(*points)
-            pen.endPath()
+
+            if firstPt == lastPt: # Closed contour
+                pen.closePath()
+            else:
+                pen.endPath()
 
     def _parseGrid(self, data):
         info = self._font.info
