@@ -238,40 +238,51 @@ class SFDParser():
         return contours
 
     def _drawContours(self, glyph, contours, quadratic):
-        pen = glyph.getPen()
+        pen = glyph.getPointPen()
         for contour in contours:
             if not isinstance(contour[-1], (tuple, list)):
                 name = contour.pop()
-            prev = []
-            firstPt = None
-            lastPt = None
+
+            ufoContour = []
             for command, points, flags in contour:
-                if firstPt is None:
-                    firstPt = points[0]
-                lastPt = points[-1]
+                flag = flags.split(",")[0]
+                flag = flag.split("x")[0]
+                flag = int(flag)
+
+                assert not (flag & 0x400) # SFD_PTFLAG_FORCE_OPEN_PATH
+                smooth = (flag & 0x3) != 1
+
                 if   command == "m":
-                    pen.moveTo(*points)
+                    ufoContour.append((points[0], "move", smooth))
                 elif command == "l":
-                    pen.lineTo(*points)
+                    ufoContour.append((points[0], "line", smooth))
                 else:
+                    curve = "curve"
                     if quadratic:
+                        curve = "qcurve"
+
                         # XXX I don’t know what I’m doing
                         assert points[0] == points[1]
                         points.pop(0)
-                        flag = int(flags.split(",")[0])
-                        assert not (flag & 0x400)
-                        if flag & 0x80: # SFD_PTFLAG_INTERPOLATE
-                            prev += points[:-1]
-                        else:
-                            pen.qCurveTo(*(prev + points))
-                            prev = []
-                    else:
-                        pen.curveTo(*points)
 
-            if firstPt == lastPt: # Closed contour
-                pen.closePath()
-            else:
-                pen.endPath()
+                        if flag & 0x80: # SFD_PTFLAG_INTERPOLATE
+                            for point in points:
+                                ufoContour.append((point, None, None))
+                            continue
+
+                    for point in points[:-1]:
+                        ufoContour.append((point, None, None))
+                    ufoContour.append((points[-1], curve, smooth))
+
+            # Closed path.
+            if len(ufoContour) > 1 and ufoContour[0][0] == ufoContour[-1][0]:
+                ufoContour[0] = ufoContour[-1]
+                ufoContour.pop()
+
+            pen.beginPath()
+            for point, segmentType, smooth in ufoContour:
+                pen.addPoint(point, segmentType=segmentType, smooth=smooth)
+            pen.endPath()
 
     def _parseGrid(self, data):
         info = self._font.info
