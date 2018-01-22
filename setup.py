@@ -1,20 +1,20 @@
 from setuptools import setup
 
 setup(
-    name = "sfd2ufo",
+    name = "sfdLib",
     version = "1.0",
     description = "A simple, quick and dirty, SFD to UFO converter.",
     author = "Khaled Hosny",
     author_email = "khaledhosny@eglug.org",
-        url = "https://github.com/khaledhosny/sfd2ufo",
+        url = "https://github.com/khaledhosny/sfdLib",
     license = "OpenSource, BSD-style",
     platforms = ["Any"],
 
     packages = [
-        "sfd2ufo",
+        "sfdLib",
     ],
     entry_points = {
-        'console_scripts': ['sfd2ufo = sfd2ufo.__main__:main'],
+        'console_scripts': ['sfd2ufo = sfdLib.__main__:main'],
     },
     package_dir = {'': 'Lib'},
     classifiers = [
