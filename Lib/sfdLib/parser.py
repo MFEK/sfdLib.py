@@ -20,7 +20,7 @@ from .utils import GLYPHCLASS_KEY, DECOMPOSEREMOVEOVERLAP_KEY
 QUOTED_RE = re.compile('(".*?")')
 NUMBER_RE = re.compile("(-?\d*\.*\d+)")
 LAYER_RE = re.compile("(.)\s+(.)\s+" + QUOTED_RE.pattern + "\s+(.?)")
-GLYPH_COMMAND_RE = re.compile('(\s[lmc]\s)')
+GLYPH_SEGMENT_RE = re.compile('(\s[lmc]\s)')
 KERNS_RE = re.compile(
     NUMBER_RE.pattern +
     "\s+" +
@@ -222,18 +222,18 @@ class SFDParser():
                 name = SFDReadUTF7(line.split(": ")[1])
                 contours[-1].append(name)
             else:
-                points, command, flags = [c.strip() for c in GLYPH_COMMAND_RE.split(line)]
-                points = [float(c) for c in points.split(" ")]
-                points = [points[j:j + 2] for j in range(0, len(points), 2)]
-                if   command == "m":
-                    assert len(points) == 1
-                    contours.append([(command, points, flags)])
-                elif command == "l":
-                    assert len(points) == 1
-                    contours[-1].append((command, points, flags))
-                elif command == "c":
-                    assert len(points) == 3
-                    contours[-1].append((command, points, flags))
+                pts, segmentType, flags = [c.strip() for c in GLYPH_SEGMENT_RE.split(line)]
+                pts = [float(c) for c in pts.split(" ")]
+                pts = [pts[j:j + 2] for j in range(0, len(pts), 2)]
+                if   segmentType == "m":
+                    assert len(pts) == 1
+                    contours.append([(pts, segmentType, flags)])
+                elif segmentType == "l":
+                    assert len(pts) == 1
+                    contours[-1].append((pts, segmentType, flags))
+                elif segmentType == "c":
+                    assert len(pts) == 3
+                    contours[-1].append((pts, segmentType, flags))
 
         return contours
 
@@ -244,7 +244,7 @@ class SFDParser():
                 name = contour.pop()
 
             ufoContour = []
-            for command, points, flags in contour:
+            for pts, segmentType, flags in contour:
                 flag = flags.split(",")[0]
                 flag = flag.split("x")[0]
                 flag = int(flag)
@@ -252,27 +252,27 @@ class SFDParser():
                 assert not (flag & 0x400) # SFD_PTFLAG_FORCE_OPEN_PATH
                 smooth = (flag & 0x3) != 1
 
-                if   command == "m":
-                    ufoContour.append((points[0], "move", smooth))
-                elif command == "l":
-                    ufoContour.append((points[0], "line", smooth))
+                if   segmentType == "m":
+                    ufoContour.append((pts[0], "move", smooth))
+                elif segmentType == "l":
+                    ufoContour.append((pts[0], "line", smooth))
                 else:
                     curve = "curve"
                     if quadratic:
                         curve = "qcurve"
 
                         # XXX I don’t know what I’m doing
-                        assert points[0] == points[1]
-                        points.pop(0)
+                        assert pts[0] == pts[1]
+                        pts.pop(0)
 
                         if flag & 0x80: # SFD_PTFLAG_INTERPOLATE
-                            for point in points:
-                                ufoContour.append((point, None, None))
+                            for pt in pts:
+                                ufoContour.append((pt, None, None))
                             continue
 
-                    for point in points[:-1]:
-                        ufoContour.append((point, None, None))
-                    ufoContour.append((points[-1], curve, smooth))
+                    for pt in pts[:-1]:
+                        ufoContour.append((pt, None, None))
+                    ufoContour.append((pts[-1], curve, smooth))
 
             # Closed path.
             if len(ufoContour) > 1 and ufoContour[0][0] == ufoContour[-1][0]:
@@ -280,8 +280,8 @@ class SFDParser():
                 ufoContour.pop()
 
             pen.beginPath()
-            for point, segmentType, smooth in ufoContour:
-                pen.addPoint(point, segmentType=segmentType, smooth=smooth)
+            for pt, segmentType, smooth in ufoContour:
+                pen.addPoint(pt, segmentType=segmentType, smooth=smooth)
             pen.endPath()
 
     def _parseGrid(self, data):
@@ -301,11 +301,11 @@ class SFDParser():
                 # complex contours here.
                 continue
 
-            for command, points, flags in contour:
-                if   command == "m":
-                    p0 = points[0]
-                elif command == "l":
-                    p1 = points[0]
+            for pts, segmentType, flags in contour:
+                if   segmentType == "m":
+                    p0 = pts[0]
+                elif segmentType == "l":
+                    p1 = pts[0]
 
                     x = None
                     y = None
@@ -325,7 +325,7 @@ class SFDParser():
                     info.appendGuideline(
                         dict(x=x, y=y, name=name, angle=angle))
                 else:
-                    p0 = points[0]
+                    p0 = pts[0]
 
     def _parseImage(self, glyph, data):
         pass # XXX
