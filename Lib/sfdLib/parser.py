@@ -703,9 +703,29 @@ class SFDParser():
             font.features.text = ""
         font.features.text += "\n".join(lines)
 
-    def _santizeLookupName(self, lookup):
+    _SHORT_LOOKUP_TYPES = {
+        "gsub_single": "single",
+        "gsub_multiple": "mult",
+        "gsub_alternate": "alt",
+        "gsub_ligature": "ligature",
+        "gsub_context": "context",
+        "gsub_contextchain": "chain",
+        "gsub_reversecchain": "reversecc",
+        "gpos_single": "single",
+        "gpos_pair": "pair",
+        "gpos_cursive": "cursive",
+        "gpos_mark2base": "mark2base",
+        "gpos_mark2ligature": "mark2liga",
+        "gpos_mark2mark": "mark2mark",
+        "gpos_context": "context",
+        "gpos_contextchain": "chain",
+    }
+
+    def _santizeLookupName(self, lookup, isgpos=None):
         if lookup in self._sanitizedLookupNames:
             return self._sanitizedLookupNames[lookup]
+
+        assert isgpos is not None
 
         out = ""
         for i, ch in enumerate(lookup):
@@ -718,10 +738,27 @@ class SFDParser():
             elif i != 0 and ch.isdigit():
                 out += ch
         out = out[:31]
+
         if out not in self._sanitizedLookupNames.values():
             self._sanitizedLookupNames[lookup] = out
         else:
-            assert False, (lookup, out)
+            kind, _, fealangsys = self._lookupInfo[lookup]
+            feat = ""
+            script = ""
+            kind = self._SHORT_LOOKUP_TYPES.get(kind, "unknown")
+            if len(fealangsys):
+                feat = fealangsys[0][0]
+                for langsys in fealangsys[0]:
+                    if langsys[0] != "DFLT":
+                        script = langsys[0]
+            i = 0
+            while True:
+                out = "%s_%s_%s%s_%d" % (isgpos and "pos" or "sub", kind,
+                    feat, script, i)
+                if out not in self._sanitizedLookupNames.values():
+                    self._sanitizedLookupNames[lookup] = out
+                    break
+                i += 2
 
         return self._sanitizedLookupNames[lookup]
 
@@ -733,6 +770,9 @@ class SFDParser():
             tableLookups = self._gposLookups
         else:
             tableLookups = self._gsubLookups
+
+        for lookup in tableLookups:
+            self._santizeLookupName(lookup, isgpos)
 
         # Prune empty lookups
         lookups = OrderedDict()
