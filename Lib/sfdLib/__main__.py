@@ -10,6 +10,8 @@ def main():
     parser.add_argument("ufofile", metavar="FILE", help="output font to write")
     parser.add_argument("--ignore-uvs", action="store_true",
         help="don’t error if the font uses Unicode variation selectors")
+    parser.add_argument("--ufo-anchors", action="store_true",
+        help="output UFO anchors instead of writing them to feature file")
     parser.add_argument("--native", action="store_true",
         help="use FontForge’s native module instead of our own SFD parser")
 
@@ -21,7 +23,7 @@ def main():
         from .parser import SFDParser
 
     font = Font()
-    parser = SFDParser(args.sfdfile, font, args.ignore_uvs)
+    parser = SFDParser(args.sfdfile, font, args.ignore_uvs, args.ufo_anchors)
     parser.parse()
 
     font.save(args.ufofile)

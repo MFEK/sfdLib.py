@@ -17,10 +17,11 @@ class SFDParser():
     extension.
     """
 
-    def __init__(self, path, font, ignore_uvs=False):
+    def __init__(self, path, font, ignore_uvs=False, ufo_anchors=False):
         self._path = path
         self._font = font
         self._ignore_uvs = ignore_uvs
+        self._use_ufo_anchors = ufo_anchors
 
         self._sfd = None
         self._layerMap = {}
@@ -279,11 +280,12 @@ class SFDParser():
                 unicodes += parseAltuni(sfdGlyph.altuni, self._ignore_uvs)
             glyph.unicodes = unicodes
 
-            for anchor in sfdGlyph.anchorPoints:
-                glyph.appendAnchor(parseAnchorPoint(anchor))
-            # Now remove the anchors so that we don’t export them to the
-            # feature file.
-            sfdGlyph.anchorPoints = []
+            if self._use_ufo_anchors:
+                for anchor in sfdGlyph.anchorPoints:
+                    glyph.appendAnchor(parseAnchorPoint(anchor))
+                # Now remove the anchors so that we don’t export them to the
+                # feature file.
+                sfdGlyph.anchorPoints = []
 
     def _buildKerning(self):
         sfd = self._sfd

@@ -60,18 +60,35 @@ LANGSYS_RE = re.compile(
 SUBPOS_RE = re.compile(QUOTED_RE.pattern + "\s+(.*.)")
 
 
+def _splitList(data, n):
+    """Split data list to n sized sub lists."""
+    return [data[i:i + n] for i in range(0, len(data), n)]
+
+
+def _dumpAnchor(anchor):
+    if not anchor:
+        return "<anchor NULL>"
+    return "<anchor %g %g>" % (anchor[0], anchor[1])
+
+
 class SFDParser():
     """Parses an SFD file or SFDIR directory."""
 
-    def __init__(self, path, font, ignore_uvs=False):
+    def __init__(self, path, font, ignore_uvs=False, ufo_anchors=False):
         self._path = path
         self._font = font
         self._ignore_uvs = ignore_uvs
+        self._use_ufo_anchors = ufo_anchors
+
         self._layers = []
         self._layerType = []
+
         self._glyphRefs = OrderedDict()
+        self._glyphAnchors = OrderedDict()
         self._glyphKerns = OrderedDict()
         self._glyphPosSub = OrderedDict()
+
+        self._anchorClasses = OrderedDict()
         self._kernClasses = OrderedDict()
         self._gsubLookups = OrderedDict()
         self._gposLookups = OrderedDict()
@@ -137,7 +154,7 @@ class SFDParser():
         num = int(data.pop(0))
         version = int(data.pop())
         assert len(data) == num * 2
-        data = [data[j:j + 2] for j in range(0, len(data), 2)]
+        data = _splitList(data, 2)
 
         records = []
         for ppem, flags in data:
@@ -226,7 +243,7 @@ class SFDParser():
             else:
                 pts, segmentType, flags = [c.strip() for c in GLYPH_SEGMENT_RE.split(line)]
                 pts = [float(c) for c in pts.split(" ")]
-                pts = [pts[j:j + 2] for j in range(0, len(pts), 2)]
+                pts = _splitList(pts, 2)
                 if   segmentType == "m":
                     assert len(pts) == 1
                     contours.append([(pts, segmentType, flags)])
@@ -367,6 +384,14 @@ class SFDParser():
 
         return i + 1
 
+    def _parseAnchorClass(self, data):
+        assert not self._anchorClasses
+        data = [SFDReadUTF7(v) for v in QUOTED_RE.findall(data)]
+        for anchor, subtable in _splitList(data, 2):
+            if subtable not in self._anchorClasses:
+                self._anchorClasses[subtable] = []
+            self._anchorClasses[subtable].append(anchor)
+
     def _parseAnchorPoint(self, glyph, data):
         m = ANCHOR_RE.match(data)
         assert m
@@ -376,7 +401,14 @@ class SFDParser():
         y = float(y)
         index = int(index)
 
-        glyph.appendAnchor(parseAnchorPoint([name, kind, x, y, index]))
+        if self._use_ufo_anchors:
+            glyph.appendAnchor(parseAnchorPoint([name, kind, x, y, index]))
+        else:
+            if glyph.name not in self._glyphAnchors:
+                self._glyphAnchors[glyph.name] = OrderedDict()
+            if name not in self._glyphAnchors[glyph.name]:
+                self._glyphAnchors[glyph.name][name] = OrderedDict()
+            self._glyphAnchors[glyph.name][name][kind] = (x, y, index)
 
     def _parsePosSub(self, glyph, key, data):
         m = SUBPOS_RE.match(data)
@@ -445,7 +477,7 @@ class SFDParser():
                     unicodes.append(uni)
             elif key == "AltUni2":
                 altuni = [int(v, 16) for v in value.split(".")]
-                altuni = [altuni[j:j + 3] for j in range(0, len(altuni), 3)]
+                altuni = _splitList(altuni, 3)
                 unicodes += parseAltuni(altuni, self._ignore_uvs)
             elif key == "GlyphClass":
                 glyph.lib[GLYPHCLASS_KEY] = self._GLYPH_CLASSES[int(value)]
@@ -594,7 +626,7 @@ class SFDParser():
             self._gsubLookups[lookup] = subtables
 
         flags = []
-        for i, name in self._LOOKUP_FLAGS.items():
+        for i, name in sorted(self._LOOKUP_FLAGS.items()):
             if flag & i:
                 flags.append(name)
 
@@ -762,6 +794,74 @@ class SFDParser():
 
         return self._sanitizedLookupNames[lookup]
 
+    def _sanitizeName(self, name):
+        out = ""
+        for i, ch in enumerate(name):
+            if ord(ch) >= 127:
+                continue
+            if ch == " ":
+                out += "_"
+            if ch.isalnum() or ch in (".", "_"):
+                out += ch
+
+        return out
+
+    def _pruneSubtables(self, subtables, isgpos):
+        out = []
+        for sub in subtables:
+            if any(sub in self._glyphPosSub[g] for g in self._glyphPosSub):
+                out.append(sub)
+            elif sub in self._anchorClasses:
+                out.append(sub)
+
+        return out
+
+    def _writeAnchorClass(self, lookup, subtable):
+        lines = []
+
+        kind, _, _ = self._lookupInfo[lookup]
+
+        bases = OrderedDict()
+        marks = OrderedDict()
+        for anchorClass in self._anchorClasses[subtable]:
+            for glyph in self._font.glyphOrder:
+                if glyph in self._glyphAnchors and anchorClass in self._glyphAnchors[glyph]:
+                    anchor = self._glyphAnchors[glyph][anchorClass]
+                    if kind == "gpos_cursive":
+                        entry = anchor.get("entry")
+                        exit = anchor.get("exit")
+                        if entry or exit:
+                            entry = _dumpAnchor(entry)
+                            exit = _dumpAnchor(exit)
+                            lines.append("    pos cursive \\%s %s %s;" % (glyph, entry, exit))
+                    else:
+                        mark = anchor.get("mark")
+                        base = anchor.get("basechar", anchor.get("basemark"))
+                        if mark:
+                            if (mark[:2], anchorClass) not in marks:
+                                marks[mark[:2], anchorClass] = []
+                            marks[mark[:2], anchorClass].append(glyph)
+                        if base:
+                            if (base[:2], anchorClass) not in bases:
+                                bases[base[:2], anchorClass] = []
+                            bases[base[:2], anchorClass].append(glyph)
+
+        for (mark, anchorClass), glyphs in marks.items():
+            mark = _dumpAnchor(mark)
+            glyphs = " \\".join(glyphs)
+            className = self._sanitizeName(anchorClass)
+            lines.append("  markClass [\\%s ] %s @%s;" % (glyphs, mark, className))
+
+        for (base, anchorClass), glyphs in bases.items():
+            base = _dumpAnchor(base)
+            glyphs = " \\".join(glyphs)
+            className = self._sanitizeName(anchorClass)
+            pos = kind.split("2")[1]
+            assert pos != "ligature" # XXX
+            lines.append("  pos %s [\\%s ] %s mark @%s;" % (pos, glyphs, base, className))
+
+        return lines
+
     def _writeGSUBGPOS(self, isgpos=False):
         # Ugly as hell, rewrite later.
         font = self._font
@@ -777,7 +877,7 @@ class SFDParser():
         # Prune empty lookups
         lookups = OrderedDict()
         for lookup, subtables in tableLookups.items():
-            if any(any(s in self._glyphPosSub[g] for s in subtables) for g in self._glyphPosSub):
+            if any(self._pruneSubtables(subtables, isgpos)):
                 lookups[lookup] = subtables
 
         if not lookups:
@@ -834,7 +934,14 @@ class SFDParser():
             lines.append("")
             lines.append("lookup %s {" % self._santizeLookupName(lookup))
             lines.append("  lookupflag %s;" % flags)
+            first = True
             for i, subtable in enumerate(lookups[lookup]):
+                if subtable in self._anchorClasses:
+                    if not first:
+                        lines.append("  subtable;")
+                    lines += self._writeAnchorClass(lookup, subtable)
+                    first = False
+                    continue
                 for glyph in self._glyphPosSub:
                     if subtable in self._glyphPosSub[glyph]:
                         for _, possub in self._glyphPosSub[glyph][subtable]:
@@ -1079,6 +1186,8 @@ class SFDParser():
                 i = self._parseKernClass(data, i, value)
             elif key == "Lookup":
                 self._parseLookup(value)
+            elif key == "AnchorClass2":
+                self._parseAnchorClass(value)
             elif key == "XUID":
                 pass # XXX
             elif key == "UnicodeInterp":
