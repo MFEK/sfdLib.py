@@ -1168,6 +1168,10 @@ class SFDParser():
                 info.openTypeOS2StrikeoutSize = int(value)
             elif key == "OS2StrikeYPos":
                 info.openTypeOS2StrikeoutPosition = int(value)
+            elif key == "OS2CapHeight":
+                info.capHeight = int(value)
+            elif key == "OS2XHeight":
+                info.xHeight = int(value)
             elif key == "UniqueID":
                 info.postscriptUniqueID = int(value)
             elif key == "LangName":
