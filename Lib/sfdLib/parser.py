@@ -168,8 +168,8 @@ class SFDParser():
 
     _NAMES = [
         "copyright",
-        None, # XXX styleMapFamily
-        None, # XXX styleMapStyle
+        "familyName", # XXX styleMapFamily
+        "styleName", # XXX styleMapStyle
         "openTypeNameUniqueID",
         None, # XXX styleMapFamily and styleMapStyle
         "openTypeNameVersion",
@@ -1249,3 +1249,14 @@ class SFDParser():
         # FontForge does not have an explicit UPEM setting, it is the sum of its
         # ascender and descender.
         info.unitsPerEm = info.ascender - info.descender
+
+        # Fallback for missing styleName.
+        # FontForge does more magic in its _GetModifiers functions, but this is
+        # a stripped down version.
+        if info.styleName is None:
+            value = "Regular"
+            if info.postscriptFontName and "-" in info.postscriptFontName:
+                value = info.postscriptFontName.split("-", 1)[1]
+            elif info.postscriptWeightName:
+                value = info.postscriptWeightName
+            info.styleName = value
