@@ -78,6 +78,8 @@ class SFDParser():
         self._lookupInfo = OrderedDict()
         self._ligatureCarets = OrderedDict()
 
+        self._sanitizedLookupNames = {}
+
     def _parsePrivateDict(self, data):
         info = self._font.info
         n = int(data.pop(0))
@@ -701,13 +703,27 @@ class SFDParser():
             font.features.text = ""
         font.features.text += "\n".join(lines)
 
-    def _santizeLookupName(self, name):
+    def _santizeLookupName(self, lookup):
+        if lookup in self._sanitizedLookupNames:
+            return self._sanitizedLookupNames[lookup]
+
         out = ""
-        for i, ch in enumerate(name):
-            if ord(ch) < 127 and \
-              (ch.isalpha() or ch in (".", "_") or (i != 0 and ch.isdigit())):
+        for i, ch in enumerate(lookup):
+            if ord(ch) >= 127:
+                continue
+            if ch.isalpha():
                 out += ch
-        return out[:31]
+            elif ch in (".", "_"):
+                out += ch
+            elif i != 0 and ch.isdigit():
+                out += ch
+        out = out[:31]
+        if out not in self._sanitizedLookupNames.values():
+            self._sanitizedLookupNames[lookup] = out
+        else:
+            assert False, (lookup, out)
+
+        return self._sanitizedLookupNames[lookup]
 
     def _writeGSUBGPOS(self, isgpos=False):
         # Ugly as hell, rewrite later.
