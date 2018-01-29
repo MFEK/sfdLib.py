@@ -46,13 +46,13 @@ class SFDParser():
                 setattr(self._font.info, ufoName, name[2])
 
     def _setInfo(self, ufoName, sfdName):
-        value = getattr(self._sfd, sfdName, None)
+        value = getattr(self._sfd, sfdName)
         if value is not None:
             # UFO's descender is -ve and FontForge's is +ve
             if sfdName in ("descent"):
                 value = -value
             # -ve value means computing it failed
-            if sfdName in ("capHeight", "xHeight") and value < 0:
+            if sfdName in ("os2_capheight", "os2_xheight") and value < 0:
                 return
             if sfdName == "os2_family_class":
                 if not value:
@@ -123,8 +123,8 @@ class SFDParser():
         self._setInfo("ascender", "ascent")
         self._setInfo("descender", "descent")
         self._setInfo("italicAngle", "italicangle")
-        self._setInfo("capHeight", "capHeight")
-        self._setInfo("xHeight", "xHeight")
+        self._setInfo("capHeight", "os2_capheight")
+        self._setInfo("xHeight", "os2_xheight")
         self._setInfo("note", "comment")
 
         # head
