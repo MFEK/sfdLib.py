@@ -732,7 +732,7 @@ class SFDParser():
         lines.append("")
 
         if font.features.text is None:
-            font.features.text = ""
+            font.features.text = "\n"
         font.features.text += "\n".join(lines)
 
     _SHORT_LOOKUP_TYPES = {
@@ -769,7 +769,7 @@ class SFDParser():
                 out += ch
             elif i != 0 and ch.isdigit():
                 out += ch
-        out = out[:31]
+        out = out[:63]
 
         if out not in self._sanitizedLookupNames.values():
             self._sanitizedLookupNames[lookup] = out
@@ -924,7 +924,6 @@ class SFDParser():
                 features[feature] = outf
 
         lines = []
-        lines.append("")
         lines.append("# %s " % (isgpos and "GPOS" or "GSUB"))
         lines.append("")
 
@@ -934,13 +933,9 @@ class SFDParser():
             lines.append("")
             lines.append("lookup %s {" % self._santizeLookupName(lookup))
             lines.append("  lookupflag %s;" % flags)
-            first = True
             for i, subtable in enumerate(lookups[lookup]):
                 if subtable in self._anchorClasses:
-                    if not first:
-                        lines.append("  subtable;")
                     lines += self._writeAnchorClass(lookup, subtable)
-                    first = False
                     continue
                 for glyph in self._glyphPosSub:
                     if subtable in self._glyphPosSub[glyph]:
@@ -971,7 +966,7 @@ class SFDParser():
             lines.append("feature %s {" % feature)
             for script in features[feature]:
                 lines.append("")
-                lines.append("  script %s;" % script)
+                lines.append(" script %s;" % script)
                 for language in features[feature][script]:
                     lines.append("     language %s %s;" % (language, language != "dflt" and "exclude_dflt" or ""))
                     for lookup in features[feature][script][language]:
@@ -981,7 +976,7 @@ class SFDParser():
         lines.append("")
 
         if font.features.text is None:
-            font.features.text = ""
+            font.features.text = "\n"
         font.features.text += "\n".join(lines)
 
     def parse(self):
