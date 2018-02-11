@@ -259,6 +259,7 @@ class SFDParser():
     def _drawContours(self, glyph, contours, quadratic):
         pen = glyph.getPointPen()
         for contour in contours:
+            forceOpen = False
             if not isinstance(contour[-1], (tuple, list)):
                 name = contour.pop()
 
@@ -268,7 +269,8 @@ class SFDParser():
                 flag = flag.split("x")[0]
                 flag = int(flag)
 
-                assert not (flag & 0x400) # SFD_PTFLAG_FORCE_OPEN_PATH
+                if flag & 0x400: # SFD_PTFLAG_FORCE_OPEN_PATH
+                    forceOpen = True
                 smooth = (flag & 0x3) != 1
 
                 if   segmentType == "m":
@@ -294,7 +296,9 @@ class SFDParser():
                     ufoContour.append((pts[-1], curve, smooth))
 
             # Closed path.
-            if len(ufoContour) > 1 and ufoContour[0][0] == ufoContour[-1][0]:
+            if not forceOpen and (
+                    len(ufoContour) > 1 and
+                    ufoContour[0][0] == ufoContour[-1][0]):
                 ufoContour[0] = ufoContour[-1]
                 ufoContour.pop()
 
