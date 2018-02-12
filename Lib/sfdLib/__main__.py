@@ -12,12 +12,12 @@ def main():
         help="don’t error if the font uses Unicode variation selectors")
     parser.add_argument("--ufo-anchors", action="store_true",
         help="output UFO anchors instead of writing them to feature file")
-    parser.add_argument("--native", action="store_true",
-        help="use FontForge’s native module instead of our own SFD parser")
+    parser.add_argument("--fontforge", action="store_true",
+        help="use FontForge’s Python module instead of our own SFD parser")
 
     args = parser.parse_args()
 
-    if args.native:
+    if args.fontforge:
         from .native import SFDParser
     else:
         from .parser import SFDParser
