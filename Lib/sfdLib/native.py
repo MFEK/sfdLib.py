@@ -277,7 +277,7 @@ class SFDParser():
             if sfdGlyph.unicode > 0:
                 unicodes.append(sfdGlyph.unicode)
             if sfdGlyph.altuni:
-                unicodes += parseAltuni(sfdGlyph.altuni, self._ignore_uvs)
+                unicodes += parseAltuni(name, sfdGlyph.altuni, self._ignore_uvs)
             glyph.unicodes = unicodes
 
             if self._use_ufo_anchors:

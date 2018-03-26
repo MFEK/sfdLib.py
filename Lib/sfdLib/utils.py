@@ -27,7 +27,7 @@ def parseVersion(version):
     return versionMajor, versionMinor
 
 
-def parseAltuni(altuni, ignore_uvs):
+def parseAltuni(name, altuni, ignore_uvs):
     unicodes = []
     for uni, uvs, _ in altuni:
         if not ignore_uvs:

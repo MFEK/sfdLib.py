@@ -482,7 +482,7 @@ class SFDParser():
             elif key == "AltUni2":
                 altuni = [int(v, 16) for v in value.split(".")]
                 altuni = _splitList(altuni, 3)
-                unicodes += parseAltuni(altuni, self._ignore_uvs)
+                unicodes += parseAltuni(name, altuni, self._ignore_uvs)
             elif key == "GlyphClass":
                 glyph.lib[GLYPHCLASS_KEY] = self._GLYPH_CLASSES[int(value)]
             elif key == "AnchorPoint":
