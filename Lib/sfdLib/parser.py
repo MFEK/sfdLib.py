@@ -28,6 +28,14 @@ KERNS_RE = re.compile(
     "\s+" +
     QUOTED_RE.pattern
 )
+KERNCLASS_RE = re.compile(
+    NUMBER_RE.pattern +
+    "(\+?)" +
+    "\s+" +
+    NUMBER_RE.pattern +
+    "\s+" +
+    QUOTED_RE.pattern
+)
 ANCHOR_RE = re.compile(
     QUOTED_RE.pattern +
     "\s+" +
@@ -364,16 +372,23 @@ class SFDParser():
             self._glyphKerns[glyph.name].append((gid, kern))
 
     def _parseKernClass(self, data, i, value):
-        m = KERNS_RE.match(value)
-        n1, n2, name = m.groups()
+        m = KERNCLASS_RE.match(value)
+        groups = m.groups()
+        if len(groups) == 3:
+            n1, n2, name = groups
+            classstart = 1
+        else:
+            n1, _, n2, name = groups
+            classstart = 0
         n1 = int(n1)
         n2 = int(n2)
         name = SFDReadUTF7(name)
 
-        first = data[i:i + n1 - 1]
+        first = data[i:i + n1 - classstart]
         first = [v.split()[1:] for v in first]
-        first.insert(0, None)
-        i += n1 - 1
+        if classstart != 0:
+            first.insert(0, None)
+        i += n1 - classstart
 
         second = data[i:i + n2 - 1]
         second = [v.split()[1:] for v in second]
