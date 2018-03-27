@@ -871,7 +871,11 @@ class SFDParser():
             className = self._sanitizeName(anchorClass)
             lines.append("  markClass [\\%s ] %s @%s;" % (glyphs, mark, className))
 
+        markClasses = [k[1] for k in marks.keys()]
         for (base, anchorClass), glyphs in bases.items():
+            if anchorClass not in markClasses:
+                # Base anchor without a corresponding mark, nothing to do here.
+                continue
             base = _dumpAnchor(base)
             glyphs = " \\".join(glyphs)
             className = self._sanitizeName(anchorClass)
