@@ -1,9 +1,3 @@
-#
-# encoding: utf-8
-
-from __future__ import print_function, division
-from fontTools.misc.py23 import *
-
 import codecs
 import math
 import os
@@ -1226,7 +1220,7 @@ class SFDParser():
 
 
         for idx, name in enumerate(self._layers):
-            if not isinstance(name, (str, unicode)):
+            if not isinstance(name, str):
                 continue
             if idx not in (0, 1) and self._layers.count(name) != 1:
                 # FontForge layer names are not unique, make sure ours are.

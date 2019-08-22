@@ -1,10 +1,4 @@
-#
-# encoding: utf-8
-
-from __future__ import print_function, division
-from fontTools.misc.py23 import *
-
-from ufoLib.validators import groupsValidator
+from fontTools.ufoLib.validators import groupsValidator
 
 SFDLIB_PREFIX = "org.sfdlib"
 GLYPHCLASS_KEY = SFDLIB_PREFIX + ".glyphclass"
@@ -208,10 +202,10 @@ def SFDReadUTF7(data):
                 done = True
 
         if done:
-            out += unichr(ch1).encode("utf-8")
+            out += chr(ch1).encode("utf-8")
         if prev_cnt == 2:
             prev_cnt = 0
             if prev != 0:
-                out += unichr(prev).encode("utf-8")
+                out += chr(prev).encode("utf-8")
 
     return out.decode("utf-8")

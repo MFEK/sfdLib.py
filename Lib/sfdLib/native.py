@@ -1,9 +1,3 @@
-#
-# encoding: utf-8
-
-from __future__ import print_function, division
-from fontTools.misc.py23 import *
-
 import fontforge
 import math
 
@@ -222,7 +216,7 @@ class SFDParser():
                 p0 = c[0]
                 p1 = c[1]
                 if c.name is not None:
-                    name = tounicode(c.name, encoding="utf-8")
+                    name = c.name
 
                 if p0.x == p1.x:
                     x = p0.x
@@ -336,4 +330,4 @@ class SFDParser():
                 self._sfd.generateFeatureFile(feafile.name)
                 feafile.flush()
                 fea = feafile.read()
-        self._font.features.text = tounicode(fea)
+        self._font.features.text = fea
