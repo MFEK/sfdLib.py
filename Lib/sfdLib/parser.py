@@ -70,7 +70,7 @@ def _splitList(data, n):
 def _dumpAnchor(anchor):
     if not anchor:
         return "<anchor NULL>"
-    return "<anchor %g %g>" % (anchor[0], anchor[1])
+    return "<anchor {g:anchor[0]} {g:anchor[1]}>"
 
 
 class SFDParser():
@@ -717,7 +717,7 @@ class SFDParser():
                 continue
             classname = classNames[name]
             glyphs = gdef[name]
-            lines.append("%s = [" % classname)
+            lines.append(f"{classname} = [")
             n = len(classname) + 8
             for glyph in glyphs:
                 if n + len(glyph) + 1 > 80:
@@ -739,7 +739,7 @@ class SFDParser():
         if self._ligatureCarets:
             for k, v in self._ligatureCarets.items():
                 v = [str(i) for i in v]
-                lines.append("  LigatureCaretByPos \%s %s;" % (k, " ".join(v)))
+                lines.append(f"  LigatureCaretByPos \\{k} {' '.join(v)};")
         lines.append("} GDEF;")
         lines.append("")
         lines.append("")
@@ -798,8 +798,7 @@ class SFDParser():
                         script = langsys[0]
             i = 0
             while True:
-                out = "%s_%s_%s%s_%d" % (isgpos and "pos" or "sub", kind,
-                    feat, script, i)
+                out = f"{isgpos and 'pos' or 'sub'}_{kind}_{feat}{script}_{i}"
                 if out not in self._sanitizedLookupNames.values():
                     self._sanitizedLookupNames[lookup] = out
                     break
@@ -846,7 +845,7 @@ class SFDParser():
                         if entry or exit:
                             entry = _dumpAnchor(entry)
                             exit = _dumpAnchor(exit)
-                            lines.append("    pos cursive \\%s %s %s;" % (glyph, entry, exit))
+                            lines.append(f"    pos cursive \\{glyph} {entry} {exit};")
                     else:
                         mark = anchor.get("mark")
                         base = anchor.get("basechar", anchor.get("basemark"))
@@ -863,7 +862,7 @@ class SFDParser():
             mark = _dumpAnchor(mark)
             glyphs = " \\".join(glyphs)
             className = self._sanitizeName(anchorClass)
-            lines.append("  markClass [\\%s ] %s @%s;" % (glyphs, mark, className))
+            lines.append(f"  markClass [\\{glyphs} ] {mark} @{className};")
 
         markClasses = [k[1] for k in marks.keys()]
         for (base, anchorClass), glyphs in bases.items():
@@ -875,7 +874,7 @@ class SFDParser():
             className = self._sanitizeName(anchorClass)
             pos = kind.split("2")[1]
             assert pos != "ligature" # XXX
-            lines.append("  pos %s [\\%s ] %s mark @%s;" % (pos, glyphs, base, className))
+            lines.append(f"  pos {pos} [\\{glyphs} ] {base} mark @{className};")
 
         return lines
 
@@ -941,15 +940,15 @@ class SFDParser():
                 features[feature] = outf
 
         lines = []
-        lines.append("# %s " % (isgpos and "GPOS" or "GSUB"))
+        lines.append(f"# {isgpos and 'GPOS' or 'GSUB'}")
         lines.append("")
 
         for lookup in lookups:
             kind, flags, _ = self._lookupInfo[lookup]
             flags = flags and " ".join(flags) or "0"
             lines.append("")
-            lines.append("lookup %s {" % self._santizeLookupName(lookup))
-            lines.append("  lookupflag %s;" % flags)
+            lines.append(f"lookup {self._santizeLookupName(lookup)} {{")
+            lines.append(f"  lookupflag {flags};")
             for i, subtable in enumerate(lookups[lookup]):
                 if subtable in self._anchorClasses:
                     lines += self._writeAnchorClass(lookup, subtable)
@@ -961,34 +960,35 @@ class SFDParser():
                                 possub = " \\".join(possub)
 
                             if   kind in ("gsub_single", "gsub_multiple"):
-                                lines.append("    sub \\%s by \\%s ;" % (glyph, possub))
+                                lines.append(f"    sub \\{glyph} by \\{possub} ;")
                             elif kind == "gsub_alternate":
-                                lines.append("    sub \\%s from [\\%s ];" % (glyph, possub))
+                                lines.append(f"    sub \\{glyph} from [\\{possub} ];")
                             elif kind == "gsub_ligature":
-                                lines.append("    sub \\%s  by \\%s;" % (possub, glyph))
+                                lines.append(f"    sub \\{possub}  by \\{glyph};")
                             elif kind == "gpos_single":
                                 possub = " ".join([str(v) for v in possub])
-                                lines.append("    pos \\%s <%s>;" % (glyph, possub))
+                                lines.append(f"    pos \\{glyph} <{possub}>;")
                             elif kind == "gpos_pair":
                                 glyph2 = possub.pop(0)
                                 pos1 = " ".join([str(v) for v in possub[:4]])
                                 pos2 = " ".join([str(v) for v in possub[4:]])
-                                lines.append("    pos \\%s <%s> \\%s <%s>;" % (glyph, pos1, glyph2, pos2))
+                                lines.append(f"    pos \\{glyph} <{pos1}> \\{glyph2} <{pos2}>;")
                             else:
                                 assert False, (kind, possub)
-            lines.append("} %s;" % self._santizeLookupName(lookup))
+            lines.append(f"}} {self._santizeLookupName(lookup)}")
 
         for feature in features:
             lines.append("")
-            lines.append("feature %s {" % feature)
+            lines.append(f"feature {feature} {{")
             for script in features[feature]:
                 lines.append("")
-                lines.append(" script %s;" % script)
+                lines.append(f" script {script};")
                 for language in features[feature][script]:
-                    lines.append("     language %s %s;" % (language, language != "dflt" and "exclude_dflt" or ""))
+                    excludedflt = language != "dflt" and "exclude_dflt" or ""
+                    lines.append(f"     language {language} {excludedflt};")
                     for lookup in features[feature][script][language]:
-                        lines.append("      lookup %s;" % lookup)
-            lines.append("} %s;" % feature)
+                        lines.append(f"      lookup {lookup};")
+            lines.append(f"}} {feature};")
 
         lines.append("")
 
@@ -1031,7 +1031,7 @@ class SFDParser():
                     raise Exception("Not an SFD file.")
                 version = float(value)
                 if version != 3.0:
-                    raise Exception("Unsupported SFD version: %f" % version)
+                    raise Exception(f"Unsupported SFD version: {version}")
 
             elif key == "FontName":
                 info.postscriptFontName = value
@@ -1224,7 +1224,7 @@ class SFDParser():
                 continue
             if idx not in (0, 1) and self._layers.count(name) != 1:
                 # FontForge layer names are not unique, make sure ours are.
-                name += "_%d" % idx
+                name += f"_{idx}"
             self._layers[idx] = font.newLayer(name)
 
         if isdir:
