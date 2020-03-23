@@ -975,7 +975,7 @@ class SFDParser():
                                 lines.append(f"    pos \\{glyph} <{pos1}> \\{glyph2} <{pos2}>;")
                             else:
                                 assert False, (kind, possub)
-            lines.append(f"}} {self._santizeLookupName(lookup)}")
+            lines.append(f"}} {self._santizeLookupName(lookup)};")
 
         for feature in features:
             lines.append("")
