@@ -659,6 +659,8 @@ class SFDParser():
     }
 
     def _fixOffsetMetrics(self, metrics):
+        if not metrics:
+            return
         info = self._font.info
         bounds = getFontBounds(self._font.bounds)
         for metric in metrics:
