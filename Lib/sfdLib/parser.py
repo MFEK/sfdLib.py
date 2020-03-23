@@ -516,9 +516,9 @@ class SFDParser():
                 # Just collect the refs here, we can’t insert them until all the
                 # glyphs are parsed since FontForge uses glyph indices not names.
                 # The calling code will process the references at the end.
-                if layerGlyph not in self._glyphRefs:
-                    self._glyphRefs[layerGlyph] = []
-                self._glyphRefs[layerGlyph].append(value)
+                if layerGlyph.name not in self._glyphRefs:
+                    self._glyphRefs[layerGlyph.name] = []
+                self._glyphRefs[layerGlyph.name].append(value)
             elif key == "Kerns2":
                 self._parseKerns(glyph, value)
             elif key == "Comment":
@@ -549,7 +549,8 @@ class SFDParser():
         return glyph, order
 
     def _processReferences(self):
-        for glyph, refs in self._glyphRefs.items():
+        for name, refs in self._glyphRefs.items():
+            glyph = self._font[name]
             pen = glyph.getPen()
 
             for ref in refs:
