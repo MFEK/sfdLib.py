@@ -4,6 +4,7 @@ import os
 import re
 
 from datetime import datetime
+from fontTools.misc.fixedTools import otRound
 
 from .utils import parseAltuni, parseAnchorPoint, parseColor, parseVersion, \
                    getFontBounds, processKernClasses, SFDReadUTF7
@@ -69,7 +70,7 @@ def _splitList(data, n):
 def _dumpAnchor(anchor):
     if not anchor:
         return "<anchor NULL>"
-    return f"<anchor {anchor[0]:g} {anchor[1]:g}>"
+    return f"<anchor {otRound(anchor[0])} {otRound(anchor[1])}>"
 
 
 class SFDParser():
