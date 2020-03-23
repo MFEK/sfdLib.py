@@ -310,7 +310,7 @@ class SFDParser():
             pen.endPath()
 
     def _parseGrid(self, data):
-        info = self._font.info
+        font = self._font
 
         data = [l.strip() for l in data]
         contours = self._parseSplineSet(data)
@@ -347,7 +347,7 @@ class SFDParser():
                         angle = math.degrees(angle)
                         if angle < 0:
                             angle = 360 + angle
-                    info.appendGuideline(
+                    font.appendGuideline(
                         dict(x=x, y=y, name=name, angle=angle))
                 else:
                     p0 = pts[0]
