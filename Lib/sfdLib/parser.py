@@ -368,11 +368,9 @@ class SFDParser():
     def _parseKernClass(self, data, i, value):
         m = KERNCLASS_RE.match(value)
         groups = m.groups()
-        if len(groups) == 3:
-            n1, n2, name = groups
-            classstart = 1
-        else:
-            n1, _, n2, name = groups
+        n1, plus, n2, name = groups
+        classstart = 1
+        if plus:
             classstart = 0
         n1 = int(n1)
         n2 = int(n2)
