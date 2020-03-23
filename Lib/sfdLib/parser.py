@@ -580,9 +580,9 @@ class SFDParser():
                 glyph, order = self._parseChar(char)
                 glyphOrderMap[glyph.name] = order
 
-        # Change the glyph order to match FontForge’s, we need this for processing
+        # Set the glyph order to match FontForge’s, we need this for processing
         # the references below.
-        assert len(font.glyphOrder) == len(glyphOrderMap)
+        assert len(font) == len(glyphOrderMap)
         font.glyphOrder = sorted(glyphOrderMap, key=glyphOrderMap.get)
 
     _LOOKUP_TYPES = {
