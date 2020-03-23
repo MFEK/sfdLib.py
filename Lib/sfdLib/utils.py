@@ -51,7 +51,7 @@ def parseColor(color):
     g = ((color >> 8) & 255) / 255.
     b = ((color >> 16) & 255) / 255.
     a = 1.0
-    return (r, g, b, a)
+    return f"{r:g},{g:g},{b:g},{a:g}"
 
 
 def getFontBounds(bounds):
