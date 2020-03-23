@@ -77,12 +77,13 @@ class SFDParser():
     """Parses an SFD file or SFDIR directory."""
 
     def __init__(self, path, font, ignore_uvs=False, ufo_anchors=False,
-                 ufo_kerning=False):
+                 ufo_kerning=False, minimal=False):
         self._path = path
         self._font = font
         self._ignore_uvs = ignore_uvs
         self._use_ufo_anchors = ufo_anchors
         self._use_ufo_kerning = ufo_kerning
+        self._minimal = minimal
 
         self._layers = []
         self._layerType = []
@@ -501,6 +502,9 @@ class SFDParser():
                 self._parseAnchorPoint(glyph, value)
             elif key in self._LAYER_KEYWORDS:
                 idx = value and int(value) or self._LAYER_KEYWORDS.index(key)
+                if self._minimal and idx != 1:
+                    _, i = self._getSection(data, i, "EndSplineSet")
+                    continue
                 layer = self._layers[idx]
                 quadratic = self._layerType[idx]
                 if glyph.name not in layer:
@@ -514,9 +518,8 @@ class SFDParser():
                 self._drawContours(layerGlyph, contours, quadratic)
             elif key == "Image":
                 image, i = self._getSection(data, i, "EndImage", value)
-                self._parseImage(layerGlyph, image)
-            elif key == "Colour":
-                layerGlyph.markColor = parseColor(int(value, 16))
+                if not self._minimal:
+                    self._parseImage(layerGlyph, image)
             elif key == "Refer":
                 # Just collect the refs here, we can’t insert them until all the
                 # glyphs are parsed since FontForge uses glyph indices not names.
@@ -526,10 +529,6 @@ class SFDParser():
                 self._glyphRefs[layerGlyph.name].append(value)
             elif key == "Kerns2":
                 self._parseKerns(glyph, value)
-            elif key == "Comment":
-                glyph.note = SFDReadUTF7(value)
-            elif key == "UnlinkRmOvrlpSave":
-                glyph.lib[DECOMPOSEREMOVEOVERLAP_KEY] = bool(int(value))
             elif key == "LCarets2":
                 v = [int(v) for v in value.split(" ")]
                 num = v.pop(0)
@@ -545,6 +544,13 @@ class SFDParser():
                 pass # XXX
             elif key == "LayerCount":
                 pass # XXX
+            elif not self._minimal:
+                if key == "Comment":
+                    glyph.note = SFDReadUTF7(value)
+                elif key == "UnlinkRmOvrlpSave":
+                    glyph.lib[DECOMPOSEREMOVEOVERLAP_KEY] = bool(int(value))
+                elif key == "Colour":
+                    layerGlyph.markColor = parseColor(int(value, 16))
 
            #elif value is not None:
            #    print(key, value)
@@ -1095,19 +1101,6 @@ class SFDParser():
             elif key == "Copyright":
                 # Decode escape sequences.
                 info.copyright = codecs.escape_decode(value)[0].decode("utf-8")
-            elif key == "Comments":
-                info.note = value
-            elif key == "UComments":
-                old = info.note
-                info.note = SFDReadUTF7(value)
-                if old:
-                    info.note += "\n" + old
-            elif key == "FontLog":
-                if not info.note:
-                    info.note = ""
-                else:
-                    info.note = "\n"
-                info.note += "Font log:\n" + SFDReadUTF7(value)
             elif key == "Version":
                 info.versionMajor, info.versionMinor = parseVersion(value)
             elif key == "ItalicAngle":
@@ -1135,7 +1128,7 @@ class SFDParser():
                 name = SFDReadUTF7(name)
                 if idx == 1:
                     self._layers[idx] = font.layers.defaultLayer
-                else:
+                elif not self._minimal:
                     self._layers[idx] = name
                 self._layerType[idx] = quadratic
             elif key == "DisplayLayer":
@@ -1244,9 +1237,6 @@ class SFDParser():
                 self._parsePrivateDict(section)
             elif key == "BeginChars":
                 charData, i = self._getSection(data, i, "EndChars")
-            elif key == "Grid":
-                grid, i = self._getSection(data, i, "EndSplineSet")
-                self._parseGrid(grid)
             elif key == "KernClass2":
                 i = self._parseKernClass(data, i, value)
             elif key == "Lookup":
@@ -1263,6 +1253,23 @@ class SFDParser():
                 pass
             elif key == "EndSplineFont":
                 break
+            elif not self._minimal:
+                if key == "Comments":
+                    info.note = value
+                elif key == "UComments":
+                    old = info.note
+                    info.note = SFDReadUTF7(value)
+                    if old:
+                        info.note += "\n" + old
+                elif key == "FontLog":
+                    if not info.note:
+                        info.note = ""
+                    else:
+                        info.note = "\n"
+                    info.note += "Font log:\n" + SFDReadUTF7(value)
+                elif key == "Grid":
+                    grid, i = self._getSection(data, i, "EndSplineSet")
+                    self._parseGrid(grid)
 
            #else:
            #    print(key, value)
@@ -1270,6 +1277,8 @@ class SFDParser():
 
         for idx, name in enumerate(self._layers):
             if not isinstance(name, str):
+                continue
+            if self._minimal and idx != 1:
                 continue
             if idx not in (0, 1) and self._layers.count(name) != 1:
                 # FontForge layer names are not unique, make sure ours are.

@@ -15,12 +15,14 @@ def main():
         help="output UFO anchors instead of writing them to feature file")
     parser.add_argument("--ufo-kerning", action="store_true",
         help="output UFO kerning instead of writing it to feature file")
+    parser.add_argument("--minimal", action="store_true",
+        help="output enough UFO to build the font")
 
     args = parser.parse_args()
 
     font = Font()
     parser = SFDParser(args.sfdfile, font, args.ignore_uvs, args.ufo_anchors,
-        args.ufo_kerning)
+        args.ufo_kerning, args.minimal)
     parser.parse()
 
     font.save(args.ufofile, overwrite=True, validate=False)
