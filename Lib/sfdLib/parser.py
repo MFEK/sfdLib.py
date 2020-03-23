@@ -909,7 +909,7 @@ class SFDParser():
         for j, group1 in enumerate(groups1):
             for k, group2 in enumerate(groups2):
                 kern = kerns[(j * len(groups2)) + k]
-                if group1 is not None and group2 is not None and kern != 0:
+                if group1 and group2 and kern != 0:
                     lines.append(f"    pos @kc{i}_first_{j} @kc{i}_second_{k} {kern};")
         return lines
 
