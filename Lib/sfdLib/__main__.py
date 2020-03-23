@@ -1,6 +1,6 @@
 import argparse
 
-from defcon import Font
+from ufoLib2 import Font
 from .parser import SFDParser
 
 

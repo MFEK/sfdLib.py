@@ -1,2 +1,2 @@
-defcon==0.6.0
+ufoLib2==0.6.2
 fonttools==4.0.0
