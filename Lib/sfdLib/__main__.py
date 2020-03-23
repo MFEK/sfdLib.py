@@ -1,6 +1,7 @@
 import argparse
 
 from defcon import Font
+from .parser import SFDParser
 
 
 def main():
@@ -12,15 +13,8 @@ def main():
         help="don’t error if the font uses Unicode variation selectors")
     parser.add_argument("--ufo-anchors", action="store_true",
         help="output UFO anchors instead of writing them to feature file")
-    parser.add_argument("--fontforge", action="store_true",
-        help="use FontForge’s Python module instead of our own SFD parser")
 
     args = parser.parse_args()
-
-    if args.fontforge:
-        from .native import SFDParser
-    else:
-        from .parser import SFDParser
 
     font = Font()
     parser = SFDParser(args.sfdfile, font, args.ignore_uvs, args.ufo_anchors)
