@@ -3,7 +3,6 @@ import math
 import os
 import re
 
-from collections import OrderedDict
 from datetime import datetime
 
 from .utils import parseAltuni, parseAnchorPoint, parseColor, parseVersion, \
@@ -85,17 +84,17 @@ class SFDParser():
         self._layers = []
         self._layerType = []
 
-        self._glyphRefs = OrderedDict()
-        self._glyphAnchors = OrderedDict()
-        self._glyphKerns = OrderedDict()
-        self._glyphPosSub = OrderedDict()
+        self._glyphRefs = {}
+        self._glyphAnchors = {}
+        self._glyphKerns = {}
+        self._glyphPosSub = {}
 
-        self._anchorClasses = OrderedDict()
-        self._kernClasses = OrderedDict()
-        self._gsubLookups = OrderedDict()
-        self._gposLookups = OrderedDict()
-        self._lookupInfo = OrderedDict()
-        self._ligatureCarets = OrderedDict()
+        self._anchorClasses = {}
+        self._kernClasses = {}
+        self._gsubLookups = {}
+        self._gposLookups = {}
+        self._lookupInfo = {}
+        self._ligatureCarets = {}
 
         self._sanitizedLookupNames = {}
 
@@ -416,9 +415,9 @@ class SFDParser():
             glyph.appendAnchor(parseAnchorPoint([name, kind, x, y, index]))
         else:
             if glyph.name not in self._glyphAnchors:
-                self._glyphAnchors[glyph.name] = OrderedDict()
+                self._glyphAnchors[glyph.name] = {}
             if name not in self._glyphAnchors[glyph.name]:
-                self._glyphAnchors[glyph.name][name] = OrderedDict()
+                self._glyphAnchors[glyph.name][name] = {}
             self._glyphAnchors[glyph.name][name][kind] = (x, y, index)
 
     def _parsePosSub(self, glyph, key, data):
@@ -432,7 +431,7 @@ class SFDParser():
         possub = possub.strip().split()
 
         if glyph.name not in self._glyphPosSub:
-            self._glyphPosSub[glyph.name] = OrderedDict()
+            self._glyphPosSub[glyph.name] = {}
 
         if  key == "Position":
             possub = [int(p.split("=")[1]) for p in possub]
@@ -682,7 +681,7 @@ class SFDParser():
 
     def _writeGDEF(self):
         font = self._font
-        classNames = OrderedDict()
+        classNames = {}
         classNames["baseglyph"] = "@GDEF_Simple"
         classNames["baseligature"] = "@GDEF_Ligature"
         classNames["mark"] = "@GDEF_Mark"
@@ -832,8 +831,8 @@ class SFDParser():
 
         kind, _, _ = self._lookupInfo[lookup]
 
-        bases = OrderedDict()
-        marks = OrderedDict()
+        bases = {}
+        marks = {}
         for anchorClass in self._anchorClasses[subtable]:
             for glyph in self._font.glyphOrder:
                 if glyph in self._glyphAnchors and anchorClass in self._glyphAnchors[glyph]:
@@ -890,7 +889,7 @@ class SFDParser():
             self._santizeLookupName(lookup, isgpos)
 
         # Prune empty lookups
-        lookups = OrderedDict()
+        lookups = {}
         for lookup, subtables in tableLookups.items():
             if any(self._pruneSubtables(subtables, isgpos)):
                 lookups[lookup] = subtables
@@ -915,11 +914,11 @@ class SFDParser():
         scriptSet = sorted(scriptSet)
         langSet = {s: sorted(langSet[s], key=lambda l: l == "dflt" and "0" or l) for s in langSet}
 
-        features = OrderedDict()
+        features = {}
         for feature in featureSet:
-            outf = OrderedDict()
+            outf = {}
             for script in scriptSet:
-                outs = OrderedDict()
+                outs = {}
                 for language in langSet[script]:
                     outl = []
                     for lookup in lookups:
