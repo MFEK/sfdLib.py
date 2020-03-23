@@ -69,7 +69,7 @@ def _splitList(data, n):
 def _dumpAnchor(anchor):
     if not anchor:
         return "<anchor NULL>"
-    return "<anchor {g:anchor[0]} {g:anchor[1]}>"
+    return f"<anchor {anchor[0]:g} {anchor[1]:g}>"
 
 
 class SFDParser():
