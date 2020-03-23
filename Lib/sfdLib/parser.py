@@ -76,21 +76,23 @@ def _dumpAnchor(anchor):
 class SFDParser():
     """Parses an SFD file or SFDIR directory."""
 
-    def __init__(self, path, font, ignore_uvs=False, ufo_anchors=False):
+    def __init__(self, path, font, ignore_uvs=False, ufo_anchors=False,
+                 ufo_kerning=False):
         self._path = path
         self._font = font
         self._ignore_uvs = ignore_uvs
         self._use_ufo_anchors = ufo_anchors
+        self._use_ufo_kerning = ufo_kerning
 
         self._layers = []
         self._layerType = []
 
         self._glyphRefs = {}
         self._glyphAnchors = {}
-        self._glyphKerns = {}
         self._glyphPosSub = {}
 
         self._anchorClasses = {}
+        self._kernPairs = {}
         self._kernClasses = {}
         self._gsubLookups = {}
         self._gposLookups = {}
@@ -356,14 +358,17 @@ class SFDParser():
         pass # XXX
 
     def _parseKerns(self, glyph, data):
-        assert glyph.name not in self._glyphKerns
         kerns = KERNS_RE.findall(data)
         assert kerns
-        self._glyphKerns[glyph.name] = []
         for (gid, kern, subtable) in kerns:
+            subtable = SFDReadUTF7(subtable)
+            if subtable not in self._kernPairs:
+                self._kernPairs[subtable] = {}
+            if glyph.name not in self._kernPairs[subtable]:
+                self._kernPairs[subtable][glyph.name] = []
             gid = int(gid)
             kern = int(kern)
-            self._glyphKerns[glyph.name].append((gid, kern))
+            self._kernPairs[subtable][glyph.name].append((gid, kern))
 
     def _parseKernClass(self, data, i, value):
         m = KERNCLASS_RE.match(value)
@@ -560,10 +565,11 @@ class SFDParser():
                 pen.addComponent(name, matrix)
 
     def _processKerns(self):
-        for name1 in self._glyphKerns:
-            for gid2, kern in self._glyphKerns[name1]:
-                name2 = self._font.glyphOrder[gid2]
-                self._font.kerning[name1, name2] = kern
+        for subtable in self._kernPairs:
+            for name1 in self._kernPairs[subtable]:
+                for gid2, kern in self._kernPairs[subtable][name1]:
+                    name2 = self._font.glyphOrder[gid2]
+                    self._font.kerning[name1, name2] = kern
 
     def _parseChars(self, data):
         font = self._font
@@ -826,6 +832,11 @@ class SFDParser():
                 out.append(sub)
             elif sub in self._anchorClasses:
                 out.append(sub)
+            elif not self._use_ufo_kerning:
+                if sub in self._kernClasses:
+                    out.append(sub)
+                elif sub in self._kernPairs:
+                    out.append(sub)
 
         return out
 
@@ -877,6 +888,37 @@ class SFDParser():
             assert pos != "ligature" # XXX
             lines.append(f"  pos {pos} [\\{glyphs} ] {base} mark @{className};")
 
+        return lines
+
+    def _writeKernClass(self, subtable):
+        lines = []
+        groups1, groups2, kerns = self._kernClasses[subtable]
+        i = list(self._kernClasses.keys()).index(subtable)
+        classes = {}
+        for j, group in enumerate(groups1):
+            if group:
+                glyphs = " \\".join(group)
+                lines.append(f"    @kc{i}_first_{j} = [\\{glyphs} ];")
+
+        for j, group in enumerate(groups2):
+            name = f"kc{i}_second_{j}"
+            if group:
+                glyphs = " \\".join(group)
+                lines.append(f"    @kc{i}_second_{j} = [\\{glyphs} ];")
+
+        for j, group1 in enumerate(groups1):
+            for k, group2 in enumerate(groups2):
+                kern = kerns[(j * len(groups2)) + k]
+                if group1 is not None and group2 is not None and kern != 0:
+                    lines.append(f"    pos @kc{i}_first_{j} @kc{i}_second_{k} {kern};")
+        return lines
+
+    def _writeKernPairs(self, subtable):
+        lines = []
+        for name1 in self._kernPairs[subtable]:
+            for gid2, kern in self._kernPairs[subtable][name1]:
+                name2 = self._font.glyphOrder[gid2]
+                lines.append(f"    pos \\{name1} \\{name2} {kern};")
         return lines
 
     def _writeGSUBGPOS(self, isgpos=False):
@@ -953,6 +995,12 @@ class SFDParser():
             for i, subtable in enumerate(lookups[lookup]):
                 if subtable in self._anchorClasses:
                     lines += self._writeAnchorClass(lookup, subtable)
+                    continue
+                if subtable in self._kernClasses:
+                    lines += self._writeKernClass(subtable)
+                    continue
+                if subtable in self._kernPairs:
+                    lines += self._writeKernPairs(subtable)
                     continue
                 for glyph in self._glyphPosSub:
                     if subtable in self._glyphPosSub[glyph]:
@@ -1243,17 +1291,19 @@ class SFDParser():
         # first.
         self._processReferences()
 
-        # Same for kerning.
-        self._processKerns()
+        if self._use_ufo_kerning:
+            # Same for kerning.
+            self._processKerns()
 
-        # We process all kern classes together so we can detect UFO group
-        # overlap issue and act accordingly.
-        subtables = []
-        for lookup in self._gposLookups:
-            for subtable in self._gposLookups[lookup]:
-                if subtable in self._kernClasses:
-                    subtables.append(self._kernClasses[subtable])
-        processKernClasses(self._font, subtables)
+            # We process all kern classes together so we can detect UFO group
+            # overlap issue and act accordingly.
+            subtables = []
+            for lookup in self._gposLookups:
+                for subtable in self._gposLookups[lookup]:
+                    if subtable in self._kernClasses:
+                        subtables.append(self._kernClasses[subtable])
+            if subtables:
+                processKernClasses(self._font, subtables)
 
         # Need to run after parsing glyphs so that we can calculate font
         # bounding box.

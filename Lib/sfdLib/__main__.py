@@ -13,14 +13,17 @@ def main():
         help="don’t error if the font uses Unicode variation selectors")
     parser.add_argument("--ufo-anchors", action="store_true",
         help="output UFO anchors instead of writing them to feature file")
+    parser.add_argument("--ufo-kerning", action="store_true",
+        help="output UFO kerning instead of writing it to feature file")
 
     args = parser.parse_args()
 
     font = Font()
-    parser = SFDParser(args.sfdfile, font, args.ignore_uvs, args.ufo_anchors)
+    parser = SFDParser(args.sfdfile, font, args.ignore_uvs, args.ufo_anchors,
+        args.ufo_kerning)
     parser.parse()
 
-    font.save(args.ufofile)
+    font.save(args.ufofile, overwrite=True, validate=False)
 
 if __name__ == "__main__":
     main()
