@@ -8,7 +8,7 @@ from fontTools.misc.fixedTools import otRound
 
 from .utils import parseAltuni, parseAnchorPoint, parseColor, parseVersion, \
                    getFontBounds, processKernClasses, SFDReadUTF7
-from .utils import GLYPHCLASS_KEY, DECOMPOSEREMOVEOVERLAP_KEY
+from .utils import GLYPHCLASS_KEY, DECOMPOSEREMOVEOVERLAP_KEY, MATH_KEY
 
 
 QUOTED_RE = re.compile('(".*?")')
@@ -538,6 +538,22 @@ class SFDParser():
             elif key in ("Position2", "PairPos2", "Ligature2", "Substitution2",
                          "AlternateSubs2", "MultipleSubs2"):
                 self._parsePosSub(glyph, key, value)
+            elif key in ("ItalicCorrection", "TopAccentHorizontal",
+                         "IsExtendedShape"):
+                if MATH_KEY not in glyph.lib:
+                    glyph.lib[MATH_KEY] = {}
+                glyph.lib[MATH_KEY][key] = int(value)
+            elif key in ("GlyphVariantsVertical", "GlyphVariantsHorizontal"):
+                if MATH_KEY not in glyph.lib:
+                    glyph.lib[MATH_KEY] = {}
+                glyph.lib[MATH_KEY][key] = value.split(" ")
+            elif key in ("GlyphCompositionVertical",
+                         "GlyphCompositionHorizontal"):
+                if MATH_KEY not in glyph.lib:
+                    glyph.lib[MATH_KEY] = {}
+                value = value.split(" ")[1:]
+                value = [c.split("%") for c in value if c]
+                glyph.lib[MATH_KEY][key] = value
             elif key in ("HStem", "VStem", "DStem2", "CounterMasks"):
                 pass # XXX
             elif key == "Flags":
@@ -1243,6 +1259,16 @@ class SFDParser():
                 self._parseLookup(value)
             elif key == "AnchorClass2":
                 self._parseAnchorClass(value)
+            elif key == "MATH":
+                if MATH_KEY not in font.lib:
+                    font.lib[MATH_KEY] = {}
+                c, v = value.split(": ")
+                # Match OT spec names.
+                if c == "FractionDenominatorDisplayStyleGapMin":
+                    c = "FractionDenomDisplayStyleGapMin"
+                elif c == "FractionNumeratorDisplayStyleGapMin":
+                    c = "FractionNumDisplayStyleGapMin"
+                font.lib[MATH_KEY][c] = int(v)
             elif key == "XUID":
                 pass # XXX
             elif key == "UnicodeInterp":
