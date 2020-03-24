@@ -712,12 +712,11 @@ class SFDParser():
 
     def _writeGDEF(self):
         font = self._font
-        classNames = {}
-        classNames["baseglyph"] = "@GDEF_Simple"
-        classNames["baseligature"] = "@GDEF_Ligature"
-        classNames["mark"] = "@GDEF_Mark"
-        classNames["component"] = "@GDEF_Component"
-        gdef = {}
+        classes = {}
+        classes["baseglyph"] = set()
+        classes["baseligature"] = set()
+        classes["mark"] = set()
+        classes["component"] = set()
         for name in font.glyphOrder:
             glyph = font[name]
             glyphclass = glyph.lib.get(GLYPHCLASS_KEY)
@@ -731,45 +730,23 @@ class SFDParser():
                             if kind == "Ligature":
                                 glyphclass = "baseligature"
                                 break
+            classes[glyphclass].add(name)
 
-            if glyphclass not in gdef:
-                gdef[glyphclass] = []
-            gdef[glyphclass].append(name)
+        for key, value in classes.items():
+            classes[key] = " ".join(value)
 
-        # Ugly code to match FontForge output for easy comparison, should be
-        # cleaned up once the dust settles.
         lines = []
-        for name in classNames:
-            if name not in gdef:
-                continue
-            classname = classNames[name]
-            glyphs = gdef[name]
-            lines.append(f"{classname} = [")
-            n = len(classname) + 8
-            for glyph in glyphs:
-                if n + len(glyph) + 1 > 80:
-                    lines[-1] += "\n\t"
-                    n = 8
-                lines[-1] += f"{glyph} "
-                n += len(glyph) + 1
-            lines[-1] += "];"
-        names = []
-        for name in classNames:
-            classname = ""
-            if name in gdef:
-                classname = classNames[name]
-            names.append(classname)
-        lines.append("")
-        lines.append("table GDEF {")
-        lines.append("  GlyphClassDef " + ", ".join(names) + ";")
-        lines.append("")
-        if self._ligatureCarets:
-            for k, v in self._ligatureCarets.items():
-                v = [str(i) for i in v]
-                lines.append(f"  LigatureCaretByPos {k} {' '.join(v)};")
+        lines.append(f"""
+            table GDEF {{
+            GlyphClassDef [{classes['baseglyph']}],
+                          [{classes['baseligature']}],
+                          [{classes['mark']}],
+                          [{classes['component']}];""")
+
+        for k, v in self._ligatureCarets.items():
+            v = " ".join(str(i) for i in v)
+            lines.append(f"  LigatureCaretByPos {k} {v};")
         lines.append("} GDEF;")
-        lines.append("")
-        lines.append("")
 
         if font.features.text is None:
             font.features.text = "\n"
@@ -1006,7 +983,6 @@ class SFDParser():
         for lookup in lookups:
             kind, flags, _ = self._lookupInfo[lookup]
             flags = flags and " ".join(flags) or "0"
-            lines.append("")
             lines.append(f"lookup {self._santizeLookupName(lookup)} {{")
             lines.append(f"  lookupflag {flags};")
             for i, subtable in enumerate(lookups[lookup]):
@@ -1044,10 +1020,8 @@ class SFDParser():
             lines.append(f"}} {self._santizeLookupName(lookup)};")
 
         for feature in features:
-            lines.append("")
             lines.append(f"feature {feature} {{")
             for script in features[feature]:
-                lines.append("")
                 lines.append(f" script {script};")
                 for language in features[feature][script]:
                     excludedflt = language != "dflt" and "exclude_dflt" or ""
@@ -1055,8 +1029,6 @@ class SFDParser():
                     for lookup in features[feature][script][language]:
                         lines.append(f"      lookup {lookup};")
             lines.append(f"}} {feature};")
-
-        lines.append("")
 
         if font.features.text is None:
             font.features.text = "\n"
