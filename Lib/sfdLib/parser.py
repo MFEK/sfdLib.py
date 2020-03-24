@@ -739,8 +739,6 @@ class SFDParser():
         # Ugly code to match FontForge output for easy comparison, should be
         # cleaned up once the dust settles.
         lines = []
-        lines.append("#Mark attachment classes (defined in GDEF, used in lookupflags)")
-        lines.append("")
         for name in classNames:
             if name not in gdef:
                 continue
@@ -752,7 +750,7 @@ class SFDParser():
                 if n + len(glyph) + 1 > 80:
                     lines[-1] += "\n\t"
                     n = 8
-                lines[-1] += "\\" + glyph + " "
+                lines[-1] += f"{glyph} "
                 n += len(glyph) + 1
             lines[-1] += "];"
         names = []
@@ -768,7 +766,7 @@ class SFDParser():
         if self._ligatureCarets:
             for k, v in self._ligatureCarets.items():
                 v = [str(i) for i in v]
-                lines.append(f"  LigatureCaretByPos \\{k} {' '.join(v)};")
+                lines.append(f"  LigatureCaretByPos {k} {' '.join(v)};")
         lines.append("} GDEF;")
         lines.append("")
         lines.append("")
@@ -879,7 +877,7 @@ class SFDParser():
                         if entry or exit:
                             entry = _dumpAnchor(entry)
                             exit = _dumpAnchor(exit)
-                            lines.append(f"    pos cursive \\{glyph} {entry} {exit};")
+                            lines.append(f"    pos cursive {glyph} {entry} {exit};")
                     else:
                         mark = anchor.get("mark")
                         base = anchor.get("basechar", anchor.get("basemark"))
@@ -894,9 +892,9 @@ class SFDParser():
 
         for (mark, anchorClass), glyphs in marks.items():
             mark = _dumpAnchor(mark)
-            glyphs = " \\".join(glyphs)
+            glyphs = " ".join(glyphs)
             className = self._sanitizeName(anchorClass)
-            lines.append(f"  markClass [\\{glyphs} ] {mark} @{className};")
+            lines.append(f"  markClass [{glyphs}] {mark} @{className};")
 
         markClasses = [k[1] for k in marks.keys()]
         for (base, anchorClass), glyphs in bases.items():
@@ -904,11 +902,11 @@ class SFDParser():
                 # Base anchor without a corresponding mark, nothing to do here.
                 continue
             base = _dumpAnchor(base)
-            glyphs = " \\".join(glyphs)
+            glyphs = " ".join(glyphs)
             className = self._sanitizeName(anchorClass)
             pos = kind.split("2")[1]
             assert pos != "ligature" # XXX
-            lines.append(f"  pos {pos} [\\{glyphs} ] {base} mark @{className};")
+            lines.append(f"  pos {pos} [{glyphs}] {base} mark @{className};")
 
         return lines
 
@@ -919,14 +917,14 @@ class SFDParser():
         classes = {}
         for j, group in enumerate(groups1):
             if group:
-                glyphs = " \\".join(group)
-                lines.append(f"    @kc{i}_first_{j} = [\\{glyphs} ];")
+                glyphs = " ".join(group)
+                lines.append(f"    @kc{i}_first_{j} = [{glyphs}];")
 
         for j, group in enumerate(groups2):
             name = f"kc{i}_second_{j}"
             if group:
-                glyphs = " \\".join(group)
-                lines.append(f"    @kc{i}_second_{j} = [\\{glyphs} ];")
+                glyphs = " ".join(group)
+                lines.append(f"    @kc{i}_second_{j} = [{glyphs}];")
 
         for j, group1 in enumerate(groups1):
             for k, group2 in enumerate(groups2):
@@ -940,7 +938,7 @@ class SFDParser():
         for name1 in self._kernPairs[subtable]:
             for gid2, kern in self._kernPairs[subtable][name1]:
                 name2 = self._font.glyphOrder[gid2]
-                lines.append(f"    pos \\{name1} \\{name2} {kern};")
+                lines.append(f"    pos {name1} {name2} {kern};")
         return lines
 
     def _writeGSUBGPOS(self, isgpos=False):
@@ -1005,9 +1003,6 @@ class SFDParser():
                 features[feature] = outf
 
         lines = []
-        lines.append(f"# {isgpos and 'GPOS' or 'GSUB'}")
-        lines.append("")
-
         for lookup in lookups:
             kind, flags, _ = self._lookupInfo[lookup]
             flags = flags and " ".join(flags) or "0"
@@ -1028,22 +1023,22 @@ class SFDParser():
                     if subtable in self._glyphPosSub[glyph]:
                         for _, possub in self._glyphPosSub[glyph][subtable]:
                             if kind.startswith("gsub_"):
-                                possub = " \\".join(possub)
+                                possub = " ".join(possub)
 
                             if   kind in ("gsub_single", "gsub_multiple"):
-                                lines.append(f"    sub \\{glyph} by \\{possub} ;")
+                                lines.append(f"    sub {glyph} by {possub};")
                             elif kind == "gsub_alternate":
-                                lines.append(f"    sub \\{glyph} from [\\{possub} ];")
+                                lines.append(f"    sub {glyph} from [{possub}];")
                             elif kind == "gsub_ligature":
-                                lines.append(f"    sub \\{possub}  by \\{glyph};")
+                                lines.append(f"    sub {possub} by {glyph};")
                             elif kind == "gpos_single":
                                 possub = " ".join([str(v) for v in possub])
-                                lines.append(f"    pos \\{glyph} <{possub}>;")
+                                lines.append(f"    pos {glyph} <{possub}>;")
                             elif kind == "gpos_pair":
                                 glyph2 = possub.pop(0)
                                 pos1 = " ".join([str(v) for v in possub[:4]])
                                 pos2 = " ".join([str(v) for v in possub[4:]])
-                                lines.append(f"    pos \\{glyph} <{pos1}> \\{glyph2} <{pos2}>;")
+                                lines.append(f"    pos {glyph} <{pos1}> {glyph2} <{pos2}>;")
                             else:
                                 assert False, (kind, possub)
             lines.append(f"}} {self._santizeLookupName(lookup)};")
