@@ -498,6 +498,8 @@ class SFDParser():
                 unicodes += parseAltuni(name, altuni, self._ignore_uvs)
             elif key == "GlyphClass":
                 glyph.lib[GLYPHCLASS_KEY] = self._GLYPH_CLASSES[int(value)]
+            elif key == "UnlinkRmOvrlpSave":
+                glyph.lib[DECOMPOSEREMOVEOVERLAP_KEY] = bool(int(value))
             elif key == "AnchorPoint":
                 self._parseAnchorPoint(glyph, value)
             elif key in self._LAYER_KEYWORDS:
@@ -563,8 +565,6 @@ class SFDParser():
             elif not self._minimal:
                 if key == "Comment":
                     glyph.note = SFDReadUTF7(value)
-                elif key == "UnlinkRmOvrlpSave":
-                    glyph.lib[DECOMPOSEREMOVEOVERLAP_KEY] = bool(int(value))
                 elif key == "Colour":
                     layerGlyph.markColor = parseColor(int(value, 16))
 
