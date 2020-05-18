@@ -505,7 +505,7 @@ class SFDParser():
             elif key in self._LAYER_KEYWORDS:
                 idx = value and int(value) or self._LAYER_KEYWORDS.index(key)
                 if self._minimal and idx != 1:
-                    _, i = self._getSection(data, i, "EndSplineSet")
+                    layerGlyph = None
                     continue
                 layer = self._layers[idx]
                 quadratic = self._layerType[idx]
@@ -516,8 +516,9 @@ class SFDParser():
                     layerGlyph = layer[glyph.name]
             elif key == "SplineSet":
                 splines, i = self._getSection(data, i, "EndSplineSet")
-                contours = self._parseSplineSet(splines)
-                self._drawContours(layerGlyph, contours, quadratic)
+                if layerGlyph is not None:
+                    contours = self._parseSplineSet(splines)
+                    self._drawContours(layerGlyph, contours, quadratic)
             elif key == "Image":
                 image, i = self._getSection(data, i, "EndImage", value)
                 if not self._minimal:
@@ -526,6 +527,8 @@ class SFDParser():
                 # Just collect the refs here, we can’t insert them until all the
                 # glyphs are parsed since FontForge uses glyph indices not names.
                 # The calling code will process the references at the end.
+                if layerGlyph is None:
+                    continue
                 if layerGlyph.name not in self._glyphRefs:
                     self._glyphRefs[layerGlyph.name] = []
                 self._glyphRefs[layerGlyph.name].append(value)
