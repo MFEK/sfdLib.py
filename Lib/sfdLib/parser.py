@@ -1271,6 +1271,10 @@ class SFDParser():
            #    print(key, value)
 
 
+        # FontForge does not match OpenType here.
+        if info.postscriptUnderlinePosition and info.postscriptUnderlineThickness:
+            info.postscriptUnderlinePosition += info.postscriptUnderlineThickness / 2
+
         for idx, name in enumerate(self._layers):
             if not isinstance(name, str):
                 continue
