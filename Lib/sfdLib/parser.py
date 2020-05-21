@@ -845,8 +845,8 @@ class SFDParser():
 
         kind, _, _ = self._lookupInfo[lookup]
 
-        bases = {}
-        marks = {}
+        bases = []
+        marks = []
         for anchorClass in self._anchorClasses[subtable]:
             for glyph in self._font.glyphOrder:
                 if glyph in self._glyphAnchors and anchorClass in self._glyphAnchors[glyph]:
@@ -862,31 +862,25 @@ class SFDParser():
                         mark = anchor.get("mark")
                         base = anchor.get("basechar", anchor.get("basemark"))
                         if mark:
-                            if (mark[:2], anchorClass) not in marks:
-                                marks[mark[:2], anchorClass] = []
-                            marks[mark[:2], anchorClass].append(glyph)
+                            marks.append((glyph, mark[:2], anchorClass))
                         if base:
-                            if (base[:2], anchorClass) not in bases:
-                                bases[base[:2], anchorClass] = []
-                            bases[base[:2], anchorClass].append(glyph)
+                            bases.append((glyph, base[:2], anchorClass))
 
-        for (mark, anchorClass), glyphs in marks.items():
-            mark = _dumpAnchor(mark)
-            glyphs = " ".join(glyphs)
+        for glyph, anchor, anchorClass in marks:
+            anchor = _dumpAnchor(anchor)
             className = self._sanitizeName(anchorClass)
-            lines.append(f"  markClass [{glyphs}] {mark} @{className};")
+            lines.append(f"  markClass {glyph} {anchor} @{className};")
 
-        markClasses = [k[1] for k in marks.keys()]
-        for (base, anchorClass), glyphs in bases.items():
+        markClasses = [m[2] for m in marks]
+        for glyph, anchor, anchorClass in bases:
             if anchorClass not in markClasses:
                 # Base anchor without a corresponding mark, nothing to do here.
                 continue
-            base = _dumpAnchor(base)
-            glyphs = " ".join(glyphs)
+            anchor = _dumpAnchor(anchor)
             className = self._sanitizeName(anchorClass)
             pos = kind.split("2")[1]
             assert pos != "ligature" # XXX
-            lines.append(f"  pos {pos} [{glyphs}] {base} mark @{className};")
+            lines.append(f"  pos {pos} {glyph} {anchor} mark @{className};")
 
         return lines
 
