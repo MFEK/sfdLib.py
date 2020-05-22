@@ -582,13 +582,14 @@ class SFDParser():
     def _processReferences(self):
         for name, refs in self._glyphRefs.items():
             glyph = self._font[name]
-            pen = glyph.getPen()
+            pen = glyph.getPointPen()
 
+            refs.reverse()
             for ref in refs:
                 ref = ref.split()
-                name = self._glyphOrder[int(ref[0])]
+                base = self._glyphOrder[int(ref[0])]
                 matrix = [float(v) for v in ref[3:9]]
-                pen.addComponent(name, matrix)
+                pen.addComponent(base, matrix)
 
     def _processKerns(self):
         for subtable in self._kernPairs:
