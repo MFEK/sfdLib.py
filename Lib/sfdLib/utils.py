@@ -210,3 +210,26 @@ def SFDReadUTF7(data):
                 out += chr(prev).encode("utf-8")
 
     return out.decode("utf-8")
+
+
+def sortGlyphs(font):
+    """Emulate how FontForge orders output glyphs."""
+    order = list(font.glyphOrder)
+
+    def sort(name):
+        # .notdef, .null, and nonmarkingreturn come first
+        if name == ".notdef":
+            return 0
+        if name in (".null", "uni0000", "glyph1"):
+            return 1
+        if name in ("nonmarkingreturn", "uni000D", "glyph2"):
+            return 2
+        # Then encoded glyph in the encoding order (we are assuming Unicode
+        # here, because meh).
+        g = font[name]
+        if g.unicode is not None:
+            return g.unicode + 3
+        # Then in the font order, we are adding 0x10FFFF here to make sure they
+        # sort after Unicode.
+        return order.index(name) + 0x10FFFF + 3
+    return sorted(font.glyphOrder, key=sort)

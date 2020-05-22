@@ -7,7 +7,7 @@ from datetime import datetime
 from fontTools.misc.fixedTools import otRound
 
 from .utils import parseAltuni, parseAnchorPoint, parseColor, parseVersion, \
-                   getFontBounds, processKernClasses, SFDReadUTF7
+                   getFontBounds, processKernClasses, SFDReadUTF7, sortGlyphs
 from .utils import GLYPHCLASS_KEY, DECOMPOSEREMOVEOVERLAP_KEY, MATH_KEY
 
 
@@ -91,6 +91,7 @@ class SFDParser():
         self._glyphRefs = {}
         self._glyphAnchors = {}
         self._glyphPosSub = {}
+        self._glyphOrder = {}
 
         self._anchorClasses = {}
         self._kernPairs = {}
@@ -585,7 +586,7 @@ class SFDParser():
 
             for ref in refs:
                 ref = ref.split()
-                name = self._font.glyphOrder[int(ref[0])]
+                name = self._glyphOrder[int(ref[0])]
                 matrix = [float(v) for v in ref[3:9]]
                 pen.addComponent(name, matrix)
 
@@ -612,10 +613,12 @@ class SFDParser():
                 glyph, order = self._parseChar(char)
                 glyphOrderMap[glyph.name] = order
 
-        # Set the glyph order to match FontForge’s, we need this for processing
-        # the references below.
+        # We need two glyph orders, the internal one to resolve references as
+        # they indexes not names, and the output glyph order that FontForge
+        # uses when writing out fonts.
         assert len(font) == len(glyphOrderMap)
-        font.glyphOrder = sorted(glyphOrderMap, key=glyphOrderMap.get)
+        self._glyphOrder = font.glyphOrder = sorted(glyphOrderMap, key=glyphOrderMap.get)
+        font.glyphOrder = sortGlyphs(font)
 
     _LOOKUP_TYPES = {
         0x001: "gsub_single",
