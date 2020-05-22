@@ -1281,9 +1281,9 @@ class SFDParser():
 
         if isdir:
             assert charData is None
-            import glob
+            import pathlib
             charData = []
-            for filename in glob.iglob(os.path.join(self._path, '*.glyph')):
+            for filename in pathlib.Path(self._path).glob('*.glyph'):
                 with open(filename) as fp:
                     charData += fp.readlines()
 
