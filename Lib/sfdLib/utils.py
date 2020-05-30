@@ -23,10 +23,11 @@ def parseVersion(version):
 
 
 def parseAltuni(name, altuni, ignore_uvs):
+
     unicodes = []
     for uni, uvs, _ in altuni:
         if not ignore_uvs:
-            assert uvs == -1, "Glyph %s uses variation selector "  \
+            assert uvs in (-1, 0xffffffff), "Glyph %s uses variation selector "\
                 "U+%04X, UFO doesn’t support this!" % (name, uvs)
         if uvs in (-1, 0xffffffff):
             unicodes.append(uni)
