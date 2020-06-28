@@ -359,6 +359,9 @@ class SFDParser():
     def _parseImage(self, glyph, data):
         pass # XXX
 
+    def _parseImage2(self, glyph, data):
+        pass # XXX
+
     def _parseKerns(self, glyph, data):
         kerns = KERNS_RE.findall(data)
         assert kerns
@@ -524,6 +527,10 @@ class SFDParser():
                 image, i = self._getSection(data, i, "EndImage", value)
                 if not self._minimal:
                     self._parseImage(layerGlyph, image)
+            elif key == "Image2":
+                image, i = self._getSection(data, i, "EndImage2", value)
+                if not self._minimal:
+                    self._parseImage2(layerGlyph, image)
             elif key == "Refer":
                 # Just collect the refs here, we can’t insert them until all the
                 # glyphs are parsed since FontForge uses glyph indices not names.
@@ -1069,7 +1076,7 @@ class SFDParser():
                 if key != "SplineFontDB":
                     raise Exception("Not an SFD file.")
                 version = float(value)
-                if version != 3.0:
+                if version not in (3.0, 3.2):
                     raise Exception(f"Unsupported SFD version: {version}")
 
             elif key == "FontName":
