@@ -242,7 +242,6 @@ class SFDParser():
 
             if line == "Spiro":
                 spiro, i = self._getSection(data, i, "EndSpiro")
-                i += 1
             elif line.startswith("Named"):
                 name = SFDReadUTF7(line.split(": ")[1])
                 contours[-1].append(name)
