@@ -6,65 +6,55 @@ import re
 from datetime import datetime
 from fontTools.misc.fixedTools import otRound
 
-from .utils import parseAltuni, parseAnchorPoint, parseColor, parseVersion, \
-                   getFontBounds, processKernClasses, SFDReadUTF7, sortGlyphs
+from .utils import (
+    parseAltuni,
+    parseAnchorPoint,
+    parseColor,
+    parseVersion,
+    getFontBounds,
+    processKernClasses,
+    SFDReadUTF7,
+    sortGlyphs,
+)
 from .utils import GLYPHCLASS_KEY, DECOMPOSEREMOVEOVERLAP_KEY, MATH_KEY
 
 
 QUOTED_RE = re.compile('(".*?")')
 NUMBER_RE = re.compile("(-?\d*\.*\d+)")
 LAYER_RE = re.compile("(.)\s+(.)\s+" + QUOTED_RE.pattern + "\s+(.?)")
-GLYPH_SEGMENT_RE = re.compile('(\s[lmc]\s)')
+GLYPH_SEGMENT_RE = re.compile("(\s[lmc]\s)")
 KERNS_RE = re.compile(
-    NUMBER_RE.pattern +
-    "\s+" +
-    NUMBER_RE.pattern +
-    "\s+" +
-    QUOTED_RE.pattern
+    NUMBER_RE.pattern + "\s+" + NUMBER_RE.pattern + "\s+" + QUOTED_RE.pattern
 )
 KERNCLASS_RE = re.compile(
-    NUMBER_RE.pattern +
-    "(\+?)" +
-    "\s+" +
-    NUMBER_RE.pattern +
-    "\s+" +
-    QUOTED_RE.pattern
+    NUMBER_RE.pattern + "(\+?)" + "\s+" + NUMBER_RE.pattern + "\s+" + QUOTED_RE.pattern
 )
 ANCHOR_RE = re.compile(
-    QUOTED_RE.pattern +
-    "\s+" +
-    NUMBER_RE.pattern +
-    "\s+" +
-    NUMBER_RE.pattern +
-    "\s+(\S+)\s+(\d)"
+    QUOTED_RE.pattern
+    + "\s+"
+    + NUMBER_RE.pattern
+    + "\s+"
+    + NUMBER_RE.pattern
+    + "\s+(\S+)\s+(\d)"
 )
 DEVICETABLE_RE = re.compile("\s?{.*?}\s?")
 LOOKUP_RE = re.compile(
-    "(\d+)\s+(\d+)\s+(\d+)\s+" +
-    QUOTED_RE.pattern +
-    "\s+" +
-    "{(.*?)}" +
-    "\s+" +
-    "\[(.*?)\]"
+    "(\d+)\s+(\d+)\s+(\d+)\s+"
+    + QUOTED_RE.pattern
+    + "\s+"
+    + "{(.*?)}"
+    + "\s+"
+    + "\[(.*?)\]"
 )
 TAG_RE = re.compile("'(.{,4})'")
-FEATURE_RE = re.compile(
-    TAG_RE.pattern +
-    "\s+" +
-    "\((.*.)\)"
-)
-LANGSYS_RE = re.compile(
-    TAG_RE.pattern +
-    "\s+" +
-    "<(.*?)>" +
-    "\s+"
-)
+FEATURE_RE = re.compile(TAG_RE.pattern + "\s+" + "\((.*.)\)")
+LANGSYS_RE = re.compile(TAG_RE.pattern + "\s+" + "<(.*?)>" + "\s+")
 SUBPOS_RE = re.compile(QUOTED_RE.pattern + "\s+(.*.)")
 
 
 def _splitList(data, n):
     """Split data list to n sized sub lists."""
-    return [data[i:i + n] for i in range(0, len(data), n)]
+    return [data[i : i + n] for i in range(0, len(data), n)]
 
 
 def _dumpAnchor(anchor):
@@ -73,11 +63,18 @@ def _dumpAnchor(anchor):
     return f"<anchor {otRound(anchor[0])} {otRound(anchor[1])}>"
 
 
-class SFDParser():
+class SFDParser:
     """Parses an SFD file or SFDIR directory."""
 
-    def __init__(self, path, font, ignore_uvs=False, ufo_anchors=False,
-                 ufo_kerning=False, minimal=False):
+    def __init__(
+        self,
+        path,
+        font,
+        ignore_uvs=False,
+        ufo_anchors=False,
+        ufo_kerning=False,
+        minimal=False,
+    ):
         self._path = path
         self._font = font
         self._ignore_uvs = ignore_uvs
@@ -119,7 +116,7 @@ class SFDParser():
             else:
                 value = float(value)
 
-            if   key == "BlueValues":
+            if key == "BlueValues":
                 info.postscriptBlueValues = value
             elif key == "OtherBlues":
                 info.postscriptOtherBlues = value
@@ -174,10 +171,10 @@ class SFDParser():
 
     _NAMES = [
         "copyright",
-        "familyName", # XXX styleMapFamily
-        "styleName", # XXX styleMapStyle
+        "familyName",  # XXX styleMapFamily
+        "styleName",  # XXX styleMapStyle
         "openTypeNameUniqueID",
-        None, # XXX styleMapFamily and styleMapStyle
+        None,  # XXX styleMapFamily and styleMapStyle
         "openTypeNameVersion",
         "postscriptFontName",
         "trademark",
@@ -188,12 +185,12 @@ class SFDParser():
         "openTypeNameDesignerURL",
         "openTypeNameLicense",
         "openTypeNameLicenseURL",
-        None, # Reserved
+        None,  # Reserved
         "openTypeNamePreferredFamilyName",
         "openTypeNamePreferredSubfamilyName",
         "openTypeNameCompatibleFullName",
         "openTypeNameSampleText",
-        None, # XXX
+        None,  # XXX
         "openTypeNameWWSFamilyName",
         "openTypeNameWWSSubfamilyName",
     ]
@@ -218,8 +215,14 @@ class SFDParser():
                     if not info.openTypeNameRecords:
                         info.openTypeNameRecords = []
                     info.openTypeNameRecords.append(
-                        dict(nameID=nameId, languageID=langId, string=name,
-                             platformID=3, encodingID=1))
+                        dict(
+                            nameID=nameId,
+                            languageID=langId,
+                            string=name,
+                            platformID=3,
+                            encodingID=1,
+                        )
+                    )
 
     def _getSection(self, data, i, end, value=None):
         section = []
@@ -246,10 +249,12 @@ class SFDParser():
                 name = SFDReadUTF7(line.split(": ")[1])
                 contours[-1].append(name)
             else:
-                pts, segmentType, flags = [c.strip() for c in GLYPH_SEGMENT_RE.split(line)]
+                pts, segmentType, flags = [
+                    c.strip() for c in GLYPH_SEGMENT_RE.split(line)
+                ]
                 pts = [float(c) for c in pts.split(" ")]
                 pts = _splitList(pts, 2)
-                if   segmentType == "m":
+                if segmentType == "m":
                     assert len(pts) == 1
                     contours.append([(pts, segmentType, flags)])
                 elif segmentType == "l":
@@ -274,11 +279,11 @@ class SFDParser():
                 flag = flag.split("x")[0]
                 flag = int(flag)
 
-                if flag & 0x400: # SFD_PTFLAG_FORCE_OPEN_PATH
+                if flag & 0x400:  # SFD_PTFLAG_FORCE_OPEN_PATH
                     forceOpen = True
                 smooth = (flag & 0x3) != 1
 
-                if   segmentType == "m":
+                if segmentType == "m":
                     ufoContour.append((pts[0], "move", smooth))
                 elif segmentType == "l":
                     ufoContour.append((pts[0], "line", smooth))
@@ -291,7 +296,7 @@ class SFDParser():
                         assert pts[0] == pts[1]
                         pts.pop(0)
 
-                        if flag & 0x80: # SFD_PTFLAG_INTERPOLATE
+                        if flag & 0x80:  # SFD_PTFLAG_INTERPOLATE
                             for pt in pts:
                                 ufoContour.append((pt, None, None))
                             continue
@@ -302,8 +307,8 @@ class SFDParser():
 
             # Closed path.
             if not forceOpen and (
-                    len(ufoContour) > 1 and
-                    ufoContour[0][0] == ufoContour[-1][0]):
+                len(ufoContour) > 1 and ufoContour[0][0] == ufoContour[-1][0]
+            ):
                 ufoContour[0] = ufoContour[-1]
                 ufoContour.pop()
 
@@ -330,7 +335,7 @@ class SFDParser():
                 continue
 
             for pts, segmentType, flags in contour:
-                if   segmentType == "m":
+                if segmentType == "m":
                     p0 = pts[0]
                 elif segmentType == "l":
                     p1 = pts[0]
@@ -350,16 +355,15 @@ class SFDParser():
                         angle = math.degrees(angle)
                         if angle < 0:
                             angle = 360 + angle
-                    font.appendGuideline(
-                        dict(x=x, y=y, name=name, angle=angle))
+                    font.appendGuideline(dict(x=x, y=y, name=name, angle=angle))
                 else:
                     p0 = pts[0]
 
     def _parseImage(self, glyph, data):
-        pass # XXX
+        pass  # XXX
 
     def _parseImage2(self, glyph, data):
-        pass # XXX
+        pass  # XXX
 
     def _parseKerns(self, glyph, data):
         kerns = KERNS_RE.findall(data)
@@ -385,13 +389,13 @@ class SFDParser():
         n2 = int(n2)
         name = SFDReadUTF7(name)
 
-        first = data[i:i + n1 - classstart]
+        first = data[i : i + n1 - classstart]
         first = [v.split()[1:] for v in first]
         if classstart != 0:
             first.insert(0, None)
         i += n1 - classstart
 
-        second = data[i:i + n2 - 1]
+        second = data[i : i + n2 - 1]
         second = [v.split()[1:] for v in second]
         second.insert(0, None)
         i += n2 - 1
@@ -443,13 +447,19 @@ class SFDParser():
         if glyph.name not in self._glyphPosSub:
             self._glyphPosSub[glyph.name] = {}
 
-        if  key == "Position":
+        if key == "Position":
             possub = [int(p.split("=")[1]) for p in possub]
         elif key == "PairPos":
             possub = possub[:1] + [int(p.split("=")[1]) for p in possub[1:]]
 
-        if key in ("Ligature", "Substitution", "AlternateSubs", "MultipleSubs",
-                   "Position", "PairPos"):
+        if key in (
+            "Ligature",
+            "Substitution",
+            "AlternateSubs",
+            "MultipleSubs",
+            "Position",
+            "PairPos",
+        ):
             if subtable not in self._glyphPosSub[glyph.name]:
                 self._glyphPosSub[glyph.name][subtable] = []
             self._glyphPosSub[glyph.name][subtable].append((key, possub))
@@ -487,7 +497,7 @@ class SFDParser():
                 key = line
                 value = None
 
-            if   key == "Width":
+            if key == "Width":
                 glyph.width = int(value)
             elif key == "VWidth":
                 glyph.height = int(value)
@@ -547,11 +557,16 @@ class SFDParser():
                 if any(v):
                     assert len(v) == num
                     self._ligatureCarets[glyph.name] = v
-            elif key in ("Position2", "PairPos2", "Ligature2", "Substitution2",
-                         "AlternateSubs2", "MultipleSubs2"):
+            elif key in (
+                "Position2",
+                "PairPos2",
+                "Ligature2",
+                "Substitution2",
+                "AlternateSubs2",
+                "MultipleSubs2",
+            ):
                 self._parsePosSub(glyph, key, value)
-            elif key in ("ItalicCorrection", "TopAccentHorizontal",
-                         "IsExtendedShape"):
+            elif key in ("ItalicCorrection", "TopAccentHorizontal", "IsExtendedShape"):
                 if MATH_KEY not in glyph.lib:
                     glyph.lib[MATH_KEY] = {}
                 glyph.lib[MATH_KEY][key] = int(value)
@@ -559,27 +574,26 @@ class SFDParser():
                 if MATH_KEY not in glyph.lib:
                     glyph.lib[MATH_KEY] = {}
                 glyph.lib[MATH_KEY][key] = value.split(" ")
-            elif key in ("GlyphCompositionVertical",
-                         "GlyphCompositionHorizontal"):
+            elif key in ("GlyphCompositionVertical", "GlyphCompositionHorizontal"):
                 if MATH_KEY not in glyph.lib:
                     glyph.lib[MATH_KEY] = {}
                 value = value.split(" ")[1:]
                 value = [c.split("%") for c in value if c]
                 glyph.lib[MATH_KEY][key] = value
             elif key in ("HStem", "VStem", "DStem2", "CounterMasks"):
-                pass # XXX
+                pass  # XXX
             elif key == "Flags":
-                pass # XXX
+                pass  # XXX
             elif key == "LayerCount":
-                pass # XXX
+                pass  # XXX
             elif not self._minimal:
                 if key == "Comment":
                     glyph.note = SFDReadUTF7(value)
                 elif key == "Colour":
                     layerGlyph.markColor = parseColor(int(value, 16))
 
-           #elif value is not None:
-           #    print(key, value)
+        #   elif value is not None:
+        #      print(key, value)
 
         glyph.unicodes = unicodes
 
@@ -624,7 +638,9 @@ class SFDParser():
         # they indexes not names, and the output glyph order that FontForge
         # uses when writing out fonts.
         assert len(font) == len(glyphOrderMap)
-        self._glyphOrder = font.glyphOrder = sorted(glyphOrderMap, key=glyphOrderMap.get)
+        self._glyphOrder = font.glyphOrder = sorted(
+            glyphOrderMap, key=glyphOrderMap.get
+        )
         font.glyphOrder = sortGlyphs(font)
 
     _LOOKUP_TYPES = {
@@ -636,11 +652,9 @@ class SFDParser():
         0x006: "gsub_contextchain",
         # GSUB extension 7
         0x008: "gsub_reversecchain",
-
-        0x0fd: "morx_indic",
-        0x0fe: "morx_context",
-        0x0ff: "morx_insert",
-
+        0x0FD: "morx_indic",
+        0x0FE: "morx_context",
+        0x0FF: "morx_insert",
         0x101: "gpos_single",
         0x102: "gpos_pair",
         0x103: "gpos_cursive",
@@ -650,8 +664,7 @@ class SFDParser():
         0x107: "gpos_context",
         0x108: "gpos_contextchain",
         # GPOS extension 9
-        0x1ff: "kern_statemachine",
-
+        0x1FF: "kern_statemachine",
         # lookup&0xff == lookup type for the appropriate table
         # lookup>>8:     0=>GSUB, 1=>GPOS
     }
@@ -673,7 +686,7 @@ class SFDParser():
         lookup = SFDReadUTF7(lookup)
         subtables = [SFDReadUTF7(v) for v in QUOTED_RE.findall(subtables)]
 
-        if kind >> 8: # GPOS
+        if kind >> 8:  # GPOS
             self._gposLookups[lookup] = subtables
         else:
             self._gsubLookups[lookup] = subtables
@@ -708,7 +721,7 @@ class SFDParser():
         for metric in metrics:
             value = getattr(info, metric)
 
-            if   metric == "openTypeOS2TypoAscender":
+            if metric == "openTypeOS2TypoAscender":
                 value = self._font.ascender + value
             elif metric == "openTypeOS2TypoDescender":
                 value = self._font.descender + value
@@ -749,12 +762,14 @@ class SFDParser():
             classes[key] = " ".join(value)
 
         lines = []
-        lines.append(f"""
+        lines.append(
+            f"""
             table GDEF {{
             GlyphClassDef [{classes['baseglyph']}],
                           [{classes['baseligature']}],
                           [{classes['mark']}],
-                          [{classes['component']}];""")
+                          [{classes['component']}];"""
+        )
 
         for k, v in self._ligatureCarets.items():
             v = " ".join(str(i) for i in v)
@@ -859,7 +874,10 @@ class SFDParser():
         marks = []
         for anchorClass in self._anchorClasses[subtable]:
             for glyph in self._font.glyphOrder:
-                if glyph in self._glyphAnchors and anchorClass in self._glyphAnchors[glyph]:
+                if (
+                    glyph in self._glyphAnchors
+                    and anchorClass in self._glyphAnchors[glyph]
+                ):
                     anchor = self._glyphAnchors[glyph][anchorClass]
                     if kind == "gpos_cursive":
                         entry = anchor.get("entry")
@@ -889,7 +907,7 @@ class SFDParser():
             anchor = _dumpAnchor(anchor)
             className = self._sanitizeName(anchorClass)
             pos = kind.split("2")[1]
-            assert pos != "ligature" # XXX
+            assert pos != "ligature"  # XXX
             lines.append(f"  pos {pos} {glyph} {anchor} mark @{className};")
 
         return lines
@@ -961,7 +979,10 @@ class SFDParser():
                     langSet[script].update(languages)
 
         scriptSet = sorted(scriptSet)
-        langSet = {s: sorted(langSet[s], key=lambda l: l == "dflt" and "0" or l) for s in langSet}
+        langSet = {
+            s: sorted(langSet[s], key=lambda l: l == "dflt" and "0" or l)
+            for s in langSet
+        }
 
         features = {}
         for feature in featureSet:
@@ -978,7 +999,9 @@ class SFDParser():
                                     if script == sl[0]:
                                         for ll in sl[1]:
                                             if language == ll:
-                                                outl.append(self._santizeLookupName(lookup))
+                                                outl.append(
+                                                    self._santizeLookupName(lookup)
+                                                )
                     if outl:
                         outs[language] = outl
                 if outs:
@@ -1008,7 +1031,7 @@ class SFDParser():
                             if kind.startswith("gsub_"):
                                 possub = " ".join(possub)
 
-                            if   kind in ("gsub_single", "gsub_multiple"):
+                            if kind in ("gsub_single", "gsub_multiple"):
                                 lines.append(f"    sub {glyph} by {possub};")
                             elif kind == "gsub_alternate":
                                 lines.append(f"    sub {glyph} from [{possub}];")
@@ -1021,7 +1044,9 @@ class SFDParser():
                                 glyph2 = possub.pop(0)
                                 pos1 = " ".join([str(v) for v in possub[:4]])
                                 pos2 = " ".join([str(v) for v in possub[4:]])
-                                lines.append(f"    pos {glyph} <{pos1}> {glyph2} <{pos2}>;")
+                                lines.append(
+                                    f"    pos {glyph} <{pos1}> {glyph2} <{pos2}>;"
+                                )
                             else:
                                 assert False, (kind, possub)
             lines.append(f"}} {self._santizeLookupName(lookup)};")
@@ -1085,7 +1110,7 @@ class SFDParser():
             elif key == "FamilyName":
                 info.familyName = value
             elif key == "DefaultBaseFilename":
-                pass # info.XXX = value
+                pass  # info.XXX = value
             elif key == "Weight":
                 info.postscriptWeightName = value
             elif key == "Copyright":
@@ -1104,9 +1129,9 @@ class SFDParser():
             elif key in "Descent":
                 info.descender = -int(value)
             elif key == "sfntRevision":
-                pass # info.XXX = int(value, 16)
+                pass  # info.XXX = int(value, 16)
             elif key == "WidthSeparation":
-                pass # XXX = float(value) # auto spacing
+                pass  # XXX = float(value) # auto spacing
             elif key == "LayerCount":
                 self._layers = int(value) * [None]
                 self._layerType = int(value) * [None]
@@ -1122,28 +1147,28 @@ class SFDParser():
                     self._layers[idx] = name
                 self._layerType[idx] = quadratic
             elif key == "DisplayLayer":
-                pass # XXX default layer
+                pass  # XXX default layer
             elif key == "DisplaySize":
-                pass # GUI
+                pass  # GUI
             elif key == "AntiAlias":
-                pass # GUI
+                pass  # GUI
             elif key == "FitToEm":
-                pass # GUI
+                pass  # GUI
             elif key == "WinInfo":
-                pass # GUI
+                pass  # GUI
             elif key == "Encoding":
-                pass # XXX encoding = value
+                pass  # XXX encoding = value
             elif key == "CreationTime":
                 v = datetime.utcfromtimestamp(int(value))
                 info.openTypeHeadCreated = v.strftime("%Y/%m/%d %H:%M:%S")
             elif key == "ModificationTime":
-                pass # XXX
+                pass  # XXX
             elif key == "FSType":
                 v = int(value)
                 v = [bit for bit in range(16) if v & (1 << bit)]
                 info.openTypeOS2Type = v
             elif key == "PfmFamily":
-                pass # info.XXX = value
+                pass  # info.XXX = value
             elif key in ("TTFWeight", "PfmWeight"):
                 info.openTypeOS2WeightClass = int(value)
             elif key == "TTFWidth":
@@ -1165,9 +1190,9 @@ class SFDParser():
                 info.openTypeOS2VendorID = value.strip("'")
             elif key == "OS2FamilyClass":
                 v = int(value)
-                info.openTypeOS2FamilyClass = (v >> 8, v & 0xff)
+                info.openTypeOS2FamilyClass = (v >> 8, v & 0xFF)
             elif key == "OS2Version":
-                pass # XXX
+                pass  # XXX
             elif key == "OS2_WeightWidthSlopeOnly":
                 if int(value):
                     if not info.openTypeOS2Selection:
@@ -1178,9 +1203,9 @@ class SFDParser():
                     info.openTypeOS2Selection = []
                 info.openTypeOS2Selection += [7]
             elif key == "OS2CodePages":
-                pass # XXX
+                pass  # XXX
             elif key == "OS2UnicodeRanges":
-                pass # XXX
+                pass  # XXX
             elif key == "OS2TypoAscent":
                 info.openTypeOS2TypoAscender = int(value)
             elif key == "OS2TypoDescent":
@@ -1244,11 +1269,11 @@ class SFDParser():
                     c = "FractionNumDisplayStyleGapMin"
                 font.lib[MATH_KEY][c] = int(v)
             elif key == "XUID":
-                pass # XXX
+                pass  # XXX
             elif key == "UnicodeInterp":
-                pass # XXX
+                pass  # XXX
             elif key == "NameList":
-                pass # XXX
+                pass  # XXX
             elif key == "DEI":
                 pass
             elif key == "EndSplineFont":
@@ -1271,9 +1296,8 @@ class SFDParser():
                     grid, i = self._getSection(data, i, "EndSplineSet")
                     self._parseGrid(grid)
 
-           #else:
-           #    print(key, value)
-
+        #   else:
+        #      print(key, value)
 
         # FontForge does not match OpenType here.
         if info.postscriptUnderlinePosition and info.postscriptUnderlineThickness:
@@ -1292,8 +1316,9 @@ class SFDParser():
         if isdir:
             assert charData is None
             import pathlib
+
             charData = []
-            for filename in pathlib.Path(self._path).glob('*.glyph'):
+            for filename in pathlib.Path(self._path).glob("*.glyph"):
                 with open(filename) as fp:
                     charData += fp.readlines()
 

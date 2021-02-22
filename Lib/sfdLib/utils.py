@@ -5,6 +5,7 @@ GLYPHCLASS_KEY = SFDLIB_PREFIX + ".glyphclass"
 DECOMPOSEREMOVEOVERLAP_KEY = SFDLIB_PREFIX + ".decomposeAndRemoveOverlap"
 MATH_KEY = SFDLIB_PREFIX + ".MATH"
 
+
 def parseVersion(version):
     versionMajor = ""
     versionMinor = ""
@@ -27,9 +28,11 @@ def parseAltuni(name, altuni, ignore_uvs):
     unicodes = []
     for uni, uvs, _ in altuni:
         if not ignore_uvs:
-            assert uvs in (-1, 0xffffffff), "Glyph %s uses variation selector "\
+            assert uvs in (-1, 0xFFFFFFFF), (
+                "Glyph %s uses variation selector "
                 "U+%04X, UFO doesn’t support this!" % (name, uvs)
-        if uvs in (-1, 0xffffffff):
+            )
+        if uvs in (-1, 0xFFFFFFFF):
             unicodes.append(uni)
 
     return unicodes
@@ -49,9 +52,9 @@ def parseAnchorPoint(anchor):
 
 
 def parseColor(color):
-    r = (color & 255) / 255.
-    g = ((color >> 8) & 255) / 255.
-    b = ((color >> 16) & 255) / 255.
+    r = (color & 255) / 255.0
+    g = ((color >> 8) & 255) / 255.0
+    b = ((color >> 16) & 255) / 255.0
     a = 1.0
     return f"{r:g},{g:g},{b:g},{a:g}"
 
@@ -84,6 +87,7 @@ def kernClassesToUFO(subtables, prefix="public"):
 
     return groups, kerning
 
+
 def processKernClasses(font, subtables):
     groups, kerning = kernClassesToUFO(subtables)
     valid, _ = groupsValidator(groups)
@@ -101,23 +105,264 @@ def processKernClasses(font, subtables):
 
 
 _INBASE64 = [
-    -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
-    -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
-    -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 62, -1, -1, -1, 63,
-    52, 53, 54, 55, 56, 57, 58, 59, 60, 61, -1, -1, -1, -1, -1, -1,
-    -1,  0,  1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14,
-    15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, -1, -1, -1, -1, -1,
-    -1, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40,
-    41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, -1, -1, -1, -1, -1,
-    -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
-    -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
-    -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
-    -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
-    -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
-    -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
-    -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
-    -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    62,
+    -1,
+    -1,
+    -1,
+    63,
+    52,
+    53,
+    54,
+    55,
+    56,
+    57,
+    58,
+    59,
+    60,
+    61,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15,
+    16,
+    17,
+    18,
+    19,
+    20,
+    21,
+    22,
+    23,
+    24,
+    25,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    26,
+    27,
+    28,
+    29,
+    30,
+    31,
+    32,
+    33,
+    34,
+    35,
+    36,
+    37,
+    38,
+    39,
+    40,
+    41,
+    42,
+    43,
+    44,
+    45,
+    46,
+    47,
+    48,
+    49,
+    50,
+    51,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
+    -1,
 ]
+
 
 def SFDReadUTF7(data):
     """Python re-implementation of FontForge’s UTF-7 decoder which does not
@@ -129,7 +374,7 @@ def SFDReadUTF7(data):
 
     data = data.strip('"').encode("ascii")
 
-    if data and not isinstance(data[0], int): # Python 2
+    if data and not isinstance(data[0], int):  # Python 2
         data = [ord(c) for c in data]
 
     prev_cnt = 0
@@ -193,13 +438,13 @@ def SFDReadUTF7(data):
                 ch1 = (ch1 << 18) | (ch2 << 12) | (ch3 << 6) | ch4
 
                 if prev_cnt == 0:
-                    prev = ch1 & 0xff
+                    prev = ch1 & 0xFF
                     ch1 >>= 8
                     prev_cnt = 1
                 else:
-                    ch1 |= (prev << 24)
-                    prev = (ch1 & 0xffff)
-                    ch1 = (ch1 >> 16) & 0xffff
+                    ch1 |= prev << 24
+                    prev = ch1 & 0xFFFF
+                    ch1 = (ch1 >> 16) & 0xFFFF
                     prev_cnt = 2
                 done = True
 
@@ -233,4 +478,5 @@ def sortGlyphs(font):
         # Then in the font order, we are adding 0x10FFFF here to make sure they
         # sort after Unicode.
         return order.index(name) + 0x10FFFF + 3
+
     return sorted(font.glyphOrder, key=sort)
