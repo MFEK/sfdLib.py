@@ -50,6 +50,9 @@ TAG_RE = re.compile("'(.{,4})'")
 FEATURE_RE = re.compile(TAG_RE.pattern + "\s+" + "\((.*.)\)")
 LANGSYS_RE = re.compile(TAG_RE.pattern + "\s+" + "<(.*?)>" + "\s+")
 SUBPOS_RE = re.compile(QUOTED_RE.pattern + "\s+(.*.)")
+MARKCLASS_RE = re.compile(
+    QUOTED_RE.pattern + "\s+" + NUMBER_RE.pattern + "\s+" + "(.*?)$"
+)
 
 
 def _splitList(data, n):
@@ -91,6 +94,8 @@ class SFDParser:
         self._glyphOrder = {}
 
         self._anchorClasses = {}
+        self._markAttachClasses = []
+        self._markAttachSets = []
         self._kernPairs = {}
         self._kernClasses = {}
         self._gsubLookups = {}
@@ -408,6 +413,15 @@ class SFDParser:
 
         return i + 1
 
+    def _parseMarkClasses(self, data, i, count):
+        classes = []
+        for line in data[i : i + count]:
+            m = MARKCLASS_RE.match(line)
+            name, _, glyphs = m.groups()
+            name = SFDReadUTF7(name)
+            classes.append((name, glyphs))
+        return i + count, classes
+
     def _parseAnchorClass(self, data):
         assert not self._anchorClasses
         data = [SFDReadUTF7(v) for v in QUOTED_RE.findall(data)]
@@ -669,13 +683,6 @@ class SFDParser:
         # lookup>>8:     0=>GSUB, 1=>GPOS
     }
 
-    _LOOKUP_FLAGS = {
-        1: "RightToLeft",
-        2: "IgnoreBaseGlyphs",
-        4: "IgnoreLigatures",
-        8: "IgnoreMarks",
-    }
-
     def _parseLookup(self, data):
         m = LOOKUP_RE.match(data)
         assert m
@@ -691,18 +698,13 @@ class SFDParser:
         else:
             self._gsubLookups[lookup] = subtables
 
-        flags = []
-        for i, name in sorted(self._LOOKUP_FLAGS.items()):
-            if flag & i:
-                flags.append(name)
-
         features = []
         for tag, langsys in FEATURE_RE.findall(feature):
             features.append([tag])
             for script, langs in LANGSYS_RE.findall(langsys):
                 features[-1].append((script, TAG_RE.findall(langs)))
 
-        self._lookupInfo[lookup] = (self._LOOKUP_TYPES[kind], flags, features)
+        self._lookupInfo[lookup] = (self._LOOKUP_TYPES[kind], flag, features)
 
     _OFFSET_METRICS = {
         "HheadAOffset": "openTypeHheaAscender",
@@ -943,6 +945,13 @@ class SFDParser:
                 lines.append(f"    pos {name1} {name2} {kern};")
         return lines
 
+    _LOOKUP_FLAGS = {
+        1: "RightToLeft",
+        2: "IgnoreBaseGlyphs",
+        4: "IgnoreLigatures",
+        8: "IgnoreMarks",
+    }
+
     def _writeGSUBGPOS(self, isgpos=False):
         # Ugly as hell, rewrite later.
         font = self._font
@@ -1010,11 +1019,34 @@ class SFDParser:
                 features[feature] = outf
 
         lines = []
+        for name, glyphs in self._markAttachSets + self._markAttachClasses:
+            lines.append(f"@{name} = [{glyphs}];")
+
         for lookup in lookups:
-            kind, flags, _ = self._lookupInfo[lookup]
-            flags = flags and " ".join(flags) or "0"
             lines.append(f"lookup {self._santizeLookupName(lookup)} {{")
-            lines.append(f"  lookupflag {flags};")
+
+            kind, flag, _ = self._lookupInfo[lookup]
+
+            flags = []
+            for i, name in sorted(self._LOOKUP_FLAGS.items()):
+                if flag & i:
+                    flags.append(name)
+
+            if flag & 0xFF00:
+                markclass = (flag >> 8) & 0xFF
+                if markclass < len(self._markAttachClasses):
+                    name = self._markAttachClasses[markclass - 1][0]
+                    flags.append(f"MarkAttachmentType @{name}")
+
+            if flag & 0x10:
+                markset = (flag >> 16) & 0xFFFF
+                if markset < len(self._markAttachSets):
+                    name = self._markAttachSets[markset][0]
+                    flags.append(f"UseMarkFilteringSet @{name}")
+
+            if flags:
+                lines.append(f"  lookupflag {' '.join(flags)};")
+
             for i, subtable in enumerate(lookups[lookup]):
                 if subtable in self._anchorClasses:
                     lines += self._writeAnchorClass(lookup, subtable)
@@ -1258,6 +1290,12 @@ class SFDParser:
                 self._parseLookup(value)
             elif key == "AnchorClass2":
                 self._parseAnchorClass(value)
+            elif key == "MarkAttachClasses":
+                count = int(value) - 1
+                i, self._markAttachClasses = self._parseMarkClasses(data, i, count)
+            elif key == "MarkAttachSets":
+                count = int(value)
+                i, self._markAttachSets = self._parseMarkClasses(data, i, count)
             elif key == "MATH":
                 if MATH_KEY not in font.lib:
                     font.lib[MATH_KEY] = {}

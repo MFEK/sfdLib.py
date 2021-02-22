@@ -2,7 +2,7 @@ from setuptools import setup
 
 setup(
     name = "sfdLib",
-    version = "1.0.7",
+    version = "1.0.8",
     description = "A simple, quick and dirty, SFD to UFO converter.",
     author = "Khaled Hosny",
     author_email = "khaledhosny@eglug.org",
