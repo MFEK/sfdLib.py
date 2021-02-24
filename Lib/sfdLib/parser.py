@@ -271,7 +271,9 @@ class SFDParser:
 
         return contours
 
-    def _drawContours(self, glyph, contours, quadratic):
+    def _drawContours(self, name, layerIdx, contours):
+        quadratic = self._layerType[layerIdx]
+        glyph = self._layers[layerIdx][name]
         pen = glyph.getPointPen()
         for contour in contours:
             forceOpen = False
@@ -497,7 +499,7 @@ class SFDParser:
             name = SFDReadUTF7(name)
 
         glyph = self._font.newGlyph(name)
-        layerGlyph = glyph
+        layerIdx = None
         unicodes = []
 
         i = 0
@@ -530,39 +532,33 @@ class SFDParser:
             elif key == "AnchorPoint":
                 self._parseAnchorPoint(glyph, value)
             elif key in self._LAYER_KEYWORDS:
-                idx = value and int(value) or self._LAYER_KEYWORDS.index(key)
-                if self._minimal and idx != 1:
-                    layerGlyph = None
+                layerIdx = value and int(value) or self._LAYER_KEYWORDS.index(key)
+                if self._minimal and layerIdx != 1:
+                    layerIdx = None
                     continue
-                layer = self._layers[idx]
-                quadratic = self._layerType[idx]
+                layer = self._layers[layerIdx]
                 if glyph.name not in layer:
-                    layerGlyph = layer.newGlyph(glyph.name)
-                    layerGlyph.width = glyph.width
-                else:
-                    layerGlyph = layer[glyph.name]
+                    layer.newGlyph(name).width = glyph.width
             elif key == "SplineSet":
                 splines, i = self._getSection(data, i, "EndSplineSet")
-                if layerGlyph is not None:
+                if layerIdx is not None:
                     contours = self._parseSplineSet(splines)
-                    self._drawContours(layerGlyph, contours, quadratic)
+                    self._drawContours(name, layerIdx, contours)
             elif key == "Image":
                 image, i = self._getSection(data, i, "EndImage", value)
                 if not self._minimal:
-                    self._parseImage(layerGlyph, image)
+                    self._parseImage(self._layers[layerIdx][name], image)
             elif key == "Image2":
                 image, i = self._getSection(data, i, "EndImage2", value)
                 if not self._minimal:
-                    self._parseImage2(layerGlyph, image)
+                    self._parseImage2(self._layers[layerIdx][name], image)
             elif key == "Refer":
                 # Just collect the refs here, we can’t insert them until all the
                 # glyphs are parsed since FontForge uses glyph indices not names.
                 # The calling code will process the references at the end.
-                if layerGlyph is None:
+                if layerIdx is None:
                     continue
-                if layerGlyph.name not in self._glyphRefs:
-                    self._glyphRefs[layerGlyph.name] = []
-                self._glyphRefs[layerGlyph.name].append(value)
+                self._glyphRefs.setdefault((name, layerIdx), []).append(value)
             elif key == "Kerns2":
                 self._parseKerns(glyph, value)
             elif key == "LCarets2":
@@ -604,7 +600,7 @@ class SFDParser:
                 if key == "Comment":
                     glyph.note = SFDReadUTF7(value)
                 elif key == "Colour":
-                    layerGlyph.markColor = parseColor(int(value, 16))
+                    glyph.markColor = parseColor(int(value, 16))
 
         #   elif value is not None:
         #      print(key, value)
@@ -614,8 +610,8 @@ class SFDParser:
         return glyph, order
 
     def _processReferences(self):
-        for name, refs in self._glyphRefs.items():
-            glyph = self._font[name]
+        for (name, layerIdx), refs in self._glyphRefs.items():
+            glyph = self._layers[layerIdx][name]
             pen = glyph.getPointPen()
 
             refs.reverse()
