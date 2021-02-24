@@ -1019,7 +1019,43 @@ class SFDParser:
             lines.append(f"@{name} = [{glyphs}];")
 
         for lookup in lookups:
-            lines.append(f"lookup {self._santizeLookupName(lookup)} {{")
+            body = []
+            for i, subtable in enumerate(lookups[lookup]):
+                if subtable in self._anchorClasses:
+                    body += self._writeAnchorClass(lookup, subtable)
+                    continue
+                if subtable in self._kernClasses:
+                    body += self._writeKernClass(subtable)
+                    continue
+                if subtable in self._kernPairs:
+                    body += self._writeKernPairs(subtable)
+                    continue
+                for glyph in self._glyphPosSub:
+                    if subtable in self._glyphPosSub[glyph]:
+                        for _, possub in self._glyphPosSub[glyph][subtable]:
+                            if kind.startswith("gsub_"):
+                                possub = " ".join(possub)
+
+                            if kind in ("gsub_single", "gsub_multiple"):
+                                body.append(f"    sub {glyph} by {possub};")
+                            elif kind == "gsub_alternate":
+                                body.append(f"    sub {glyph} from [{possub}];")
+                            elif kind == "gsub_ligature":
+                                body.append(f"    sub {possub} by {glyph};")
+                            elif kind == "gpos_single":
+                                possub = " ".join([str(v) for v in possub])
+                                body.append(f"    pos {glyph} <{possub}>;")
+                            elif kind == "gpos_pair":
+                                glyph2 = possub.pop(0)
+                                pos1 = " ".join([str(v) for v in possub[:4]])
+                                pos2 = " ".join([str(v) for v in possub[4:]])
+                                body.append(
+                                    f"    pos {glyph} <{pos1}> {glyph2} <{pos2}>;"
+                                )
+                            else:
+                                assert False, (kind, possub)
+            if not body:
+                continue
 
             kind, flag, _ = self._lookupInfo[lookup]
 
@@ -1040,43 +1076,13 @@ class SFDParser:
                     name = self._markAttachSets[markset][0]
                     flags.append(f"UseMarkFilteringSet @{name}")
 
+            lines.append(f"lookup {self._santizeLookupName(lookup)} {{")
+
             if flags:
                 lines.append(f"  lookupflag {' '.join(flags)};")
 
-            for i, subtable in enumerate(lookups[lookup]):
-                if subtable in self._anchorClasses:
-                    lines += self._writeAnchorClass(lookup, subtable)
-                    continue
-                if subtable in self._kernClasses:
-                    lines += self._writeKernClass(subtable)
-                    continue
-                if subtable in self._kernPairs:
-                    lines += self._writeKernPairs(subtable)
-                    continue
-                for glyph in self._glyphPosSub:
-                    if subtable in self._glyphPosSub[glyph]:
-                        for _, possub in self._glyphPosSub[glyph][subtable]:
-                            if kind.startswith("gsub_"):
-                                possub = " ".join(possub)
+            lines += body
 
-                            if kind in ("gsub_single", "gsub_multiple"):
-                                lines.append(f"    sub {glyph} by {possub};")
-                            elif kind == "gsub_alternate":
-                                lines.append(f"    sub {glyph} from [{possub}];")
-                            elif kind == "gsub_ligature":
-                                lines.append(f"    sub {possub} by {glyph};")
-                            elif kind == "gpos_single":
-                                possub = " ".join([str(v) for v in possub])
-                                lines.append(f"    pos {glyph} <{possub}>;")
-                            elif kind == "gpos_pair":
-                                glyph2 = possub.pop(0)
-                                pos1 = " ".join([str(v) for v in possub[:4]])
-                                pos2 = " ".join([str(v) for v in possub[4:]])
-                                lines.append(
-                                    f"    pos {glyph} <{pos1}> {glyph2} <{pos2}>;"
-                                )
-                            else:
-                                assert False, (kind, possub)
             lines.append(f"}} {self._santizeLookupName(lookup)};")
 
         for feature in features:
