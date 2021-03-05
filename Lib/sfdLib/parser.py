@@ -16,7 +16,7 @@ from .utils import (
     SFDReadUTF7,
     sortGlyphs,
 )
-from .utils import GLYPHCLASS_KEY, DECOMPOSEREMOVEOVERLAP_KEY, MATH_KEY
+from .utils import DECOMPOSEREMOVEOVERLAP_KEY, MATH_KEY
 
 
 QUOTED_RE = re.compile('(".*?")')
@@ -53,6 +53,8 @@ SUBPOS_RE = re.compile(QUOTED_RE.pattern + "\s+(.*.)")
 MARKCLASS_RE = re.compile(
     QUOTED_RE.pattern + "\s+" + NUMBER_RE.pattern + "\s+" + "(.*?)$"
 )
+
+CATEGORIES_KEY = "public.openTypeCategories"
 
 
 def _splitList(data, n):
@@ -484,11 +486,11 @@ class SFDParser:
 
     _LAYER_KEYWORDS = ["Back", "Fore", "Layer"]
 
-    _GLYPH_CLASSES = [
-        "automatic",
-        "noclass",
-        "baseglyph",
-        "baseligature",
+    _CATEGORIES = [
+        None,
+        "",
+        "base",
+        "ligature",
         "mark",
         "component",
     ]
@@ -526,7 +528,7 @@ class SFDParser:
                 altuni = _splitList(altuni, 3)
                 unicodes += parseAltuni(name, altuni, self._ignore_uvs)
             elif key == "GlyphClass":
-                glyph.lib[GLYPHCLASS_KEY] = self._GLYPH_CLASSES[int(value)]
+                glyph.lib[CATEGORIES_KEY] = self._CATEGORIES[int(value)]
             elif key == "UnlinkRmOvrlpSave":
                 glyph.lib[DECOMPOSEREMOVEOVERLAP_KEY] = bool(int(value))
             elif key == "AnchorPoint":
@@ -736,37 +738,39 @@ class SFDParser:
 
     def _writeGDEF(self):
         font = self._font
-        classes = {}
-        classes["baseglyph"] = set()
-        classes["baseligature"] = set()
-        classes["mark"] = set()
-        classes["component"] = set()
+        categories = {}
+        categories["base"] = set()
+        categories["ligature"] = set()
+        categories["mark"] = set()
+        categories["component"] = set()
         for name in font.glyphOrder:
             glyph = font[name]
-            glyphclass = glyph.lib.get(GLYPHCLASS_KEY)
-            if glyphclass is None:
+            category = glyph.lib.get(CATEGORIES_KEY)
+            if not category:
+                continue
+            if category is None:
                 if name == ".notdef":
                     continue
-                glyphclass = "baseglyph"
+                category = "base"
                 if name in self._glyphPosSub:
                     for subtable in self._glyphPosSub[name]:
                         for kind, _ in self._glyphPosSub[name][subtable]:
                             if kind == "Ligature":
-                                glyphclass = "baseligature"
+                                category = "ligature"
                                 break
-            classes[glyphclass].add(name)
+            categories[category].add(name)
 
-        for key, value in classes.items():
-            classes[key] = " ".join(value)
+        for key, value in categories.items():
+            categories[key] = " ".join(value)
 
         lines = []
         lines.append(
             f"""
             table GDEF {{
-            GlyphClassDef [{classes['baseglyph']}],
-                          [{classes['baseligature']}],
-                          [{classes['mark']}],
-                          [{classes['component']}];"""
+            GlyphClassDef [{categories['base']}],
+                          [{categories['ligature']}],
+                          [{categories['mark']}],
+                          [{categories['component']}];"""
         )
 
         for k, v in self._ligatureCarets.items():

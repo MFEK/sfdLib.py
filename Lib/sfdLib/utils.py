@@ -1,7 +1,6 @@
 from fontTools.ufoLib.validators import groupsValidator
 
 SFDLIB_PREFIX = "org.sfdlib"
-GLYPHCLASS_KEY = SFDLIB_PREFIX + ".glyphclass"
 DECOMPOSEREMOVEOVERLAP_KEY = SFDLIB_PREFIX + ".decomposeAndRemoveOverlap"
 MATH_KEY = SFDLIB_PREFIX + ".MATH"
 
