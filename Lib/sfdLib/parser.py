@@ -178,8 +178,8 @@ class SFDParser:
         for uni, uvs, _ in altuni:
             if not self._ignore_uvs:
                 assert uvs in (-1, 0xFFFFFFFF), (
-                    "Glyph %s uses variation selector "
-                    "U+%04X, UFO doesn’t support this!" % (name, uvs)
+                    f"Glyph {name} uses variation selector "
+                    f"U+{uvs:04X}, UFO doesn’t support this!"
                 )
             if uvs in (-1, 0xFFFFFFFF):
                 unicodes.append(uni)
