@@ -134,22 +134,6 @@ def _kernClassesToUFO(subtables, prefix="public"):
     return groups, kerning
 
 
-def _processKernClasses(font, subtables):
-    groups, kerning = _kernClassesToUFO(subtables)
-    valid, _ = groupsValidator(groups)
-    if not valid:
-        # If groupsValidator() thinks these groups are invalid, ufoLib will
-        # refuse to save the files. Most likely the cause is glyphs
-        # appearing in several kerning groups. Since UFO kerning is too
-        # dumb to represent this, lets cheat on ufoLib and use our private
-        # prefix for group names which would prevent it from attempting to
-        # “validate” them.
-        groups, kerning = kernClassesToUFO(subtables, SFDLIB_PREFIX)
-
-    font.groups.update(groups)
-    font.kerning.update(kerning)
-
-
 class SFDParser:
     """Parses an SFD file or SFDIR directory."""
 
@@ -724,6 +708,40 @@ class SFDParser:
                 matrix = [float(v) for v in ref[3:9]]
                 pen.addComponent(base, matrix)
 
+    def _processUFOKerning(self):
+        if not self._use_ufo_kerning:
+            return
+
+        for subtable in self._kernPairs:
+            for name1 in self._kernPairs[subtable]:
+                for gid2, kern in self._kernPairs[subtable][name1]:
+                    name2 = self._font.glyphOrder[gid2]
+                    self._font.kerning[name1, name2] = kern
+
+        # We process all kern classes together so we can detect UFO group
+        # overlap issue and act accordingly.
+        subtables = []
+        for lookup in self._gposLookups:
+            for subtable in self._gposLookups[lookup]:
+                if subtable in self._kernClasses:
+                    subtables.append(self._kernClasses[subtable])
+        if not subtables:
+            return
+
+        groups, kerning = _kernClassesToUFO(subtables)
+        valid, _ = groupsValidator(groups)
+        if not valid:
+            # If groupsValidator() thinks these groups are invalid, ufoLib will
+            # refuse to save the files. Most likely the cause is glyphs
+            # appearing in several kerning groups. Since UFO kerning is too
+            # dumb to represent this, lets cheat on ufoLib and use our private
+            # prefix for group names which would prevent it from attempting to
+            # “validate” them.
+            groups, kerning = kernClassesToUFO(subtables, SFDLIB_PREFIX)
+
+        self._font.groups.update(groups)
+        self._font.kerning.update(kerning)
+
     def _fixUFOAnchors(self):
         if not self._use_ufo_anchors:
             return
@@ -738,13 +756,6 @@ class SFDParser:
                 for anchor in glyph.anchors:
                     if anchor.name.startswith(("exit.", "entry.")):
                         anchor.name = anchor.name.split(".")[0]
-
-    def _processKerns(self):
-        for subtable in self._kernPairs:
-            for name1 in self._kernPairs[subtable]:
-                for gid2, kern in self._kernPairs[subtable][name1]:
-                    name2 = self._font.glyphOrder[gid2]
-                    self._font.kerning[name1, name2] = kern
 
     def _parseChars(self, data):
         font = self._font
@@ -1490,19 +1501,8 @@ class SFDParser:
         # first.
         self._processReferences()
 
-        if self._use_ufo_kerning:
-            # Same for kerning.
-            self._processKerns()
-
-            # We process all kern classes together so we can detect UFO group
-            # overlap issue and act accordingly.
-            subtables = []
-            for lookup in self._gposLookups:
-                for subtable in self._gposLookups[lookup]:
-                    if subtable in self._kernClasses:
-                        subtables.append(self._kernClasses[subtable])
-            if subtables:
-                _processKernClasses(self._font, subtables)
+        # Same for kerning.
+        self._processUFOKerning()
 
         self._fixUFOAnchors()
 
