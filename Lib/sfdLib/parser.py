@@ -544,7 +544,7 @@ class SFDParser:
             elif kind == "ligature":
                 name = f"{name}_{index}"
             elif kind in ["entry", "exit"]:
-                name = f"{name}_{kind}"
+                name = f"{kind}.{name}"
             glyph.appendAnchor(dict(name=name, x=x, y=y))
         else:
             if glyph.name not in self._glyphAnchors:
@@ -723,6 +723,21 @@ class SFDParser:
                 base = self._glyphOrder[int(ref[0])]
                 matrix = [float(v) for v in ref[3:9]]
                 pen.addComponent(base, matrix)
+
+    def _fixUFOAnchors(self):
+        if not self._use_ufo_anchors:
+            return
+
+        anchors = set()
+        for glyph in self._layers[1]:
+            for anchor in glyph.anchors:
+                if anchor.name.startswith(("exit.", "entry.")):
+                    anchors.add(anchor.name.split(".", 1)[1])
+        if len(anchors) == 1:
+            for glyph in self._layers[1]:
+                for anchor in glyph.anchors:
+                    if anchor.name.startswith(("exit.", "entry.")):
+                        anchor.name = anchor.name.split(".")[0]
 
     def _processKerns(self):
         for subtable in self._kernPairs:
@@ -1488,6 +1503,8 @@ class SFDParser:
                         subtables.append(self._kernClasses[subtable])
             if subtables:
                 _processKernClasses(self._font, subtables)
+
+        self._fixUFOAnchors()
 
         # Need to run after parsing glyphs so that we can calculate font
         # bounding box.
