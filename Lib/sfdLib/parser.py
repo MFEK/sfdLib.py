@@ -878,7 +878,7 @@ class SFDParser:
             categories[category].add(name)
 
         for key, value in categories.items():
-            categories[key] = " ".join(value)
+            categories[key] = " ".join(sorted(value))
 
         lines = []
         lines.append(
