@@ -589,7 +589,7 @@ class SFDParser:
 
     _CATEGORIES = [
         None,
-        "",
+        "unassigned",
         "base",
         "ligature",
         "mark",
@@ -848,7 +848,7 @@ class SFDParser:
         for name in font.glyphOrder:
             glyph = font[name]
             category = glyph.lib.get(CATEGORIES_KEY)
-            if not category:
+            if category == "unassigned":
                 continue
             if category is None:
                 if name == ".notdef":
