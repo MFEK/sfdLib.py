@@ -5,18 +5,9 @@ import re
 
 from datetime import datetime
 from fontTools.misc.fixedTools import otRound
+from fontTools.ufoLib.validators import groupsValidator
 
-from .utils import (
-    parseAltuni,
-    parseAnchorPoint,
-    parseColor,
-    parseVersion,
-    getFontBounds,
-    processKernClasses,
-    SFDReadUTF7,
-    sortGlyphs,
-)
-from .utils import DECOMPOSEREMOVEOVERLAP_KEY, MATH_KEY
+from .utils import SFDReadUTF7
 
 
 QUOTED_RE = re.compile('(".*?")')
@@ -54,6 +45,10 @@ MARKCLASS_RE = re.compile(
     QUOTED_RE.pattern + "\s+" + NUMBER_RE.pattern + "\s+" + "(.*?)$"
 )
 
+SFDLIB_PREFIX = "org.sfdlib"
+DECOMPOSEREMOVEOVERLAP_KEY = SFDLIB_PREFIX + ".decomposeAndRemoveOverlap"
+MATH_KEY = SFDLIB_PREFIX + ".MATH"
+
 CATEGORIES_KEY = "public.openTypeCategories"
 
 
@@ -66,6 +61,93 @@ def _dumpAnchor(anchor):
     if not anchor:
         return "<anchor NULL>"
     return f"<anchor {otRound(anchor[0])} {otRound(anchor[1])}>"
+
+
+def _sortGlyphs(font):
+    """Emulate how FontForge orders output glyphs."""
+    order = list(font.glyphOrder)
+
+    def sort(name):
+        # .notdef, .null, and nonmarkingreturn come first
+        if name == ".notdef":
+            return 0
+        if name in (".null", "uni0000", "glyph1"):
+            return 1
+        if name in ("nonmarkingreturn", "uni000D", "glyph2"):
+            return 2
+        # Then encoded glyph in the encoding order (we are assuming Unicode
+        # here, because meh).
+        g = font[name]
+        if g.unicode is not None:
+            return g.unicode + 3
+        # Then in the font order, we are adding 0x10FFFF here to make sure they
+        # sort after Unicode.
+        return order.index(name) + 0x10FFFF + 3
+
+    return sorted(font.glyphOrder, key=sort)
+
+
+def _parseVersion(version):
+    versionMajor = ""
+    versionMinor = ""
+    if ";" in version:
+        # Some fonts embed stuff after ";" in the version, strip it away.
+        version = version.split(";")[0]
+    if "." in version:
+        versionMajor, versionMinor = version.split(".", 1)
+    else:
+        versionMajor = version
+
+    versionMajor = int(versionMajor) if versionMajor.isdigit() else None
+    versionMinor = int(versionMinor) if versionMinor.isdigit() else None
+
+    return versionMajor, versionMinor
+
+
+def _parseColor(color):
+    r = (color & 255) / 255.0
+    g = ((color >> 8) & 255) / 255.0
+    b = ((color >> 16) & 255) / 255.0
+    a = 1.0
+    return f"{r:g},{g:g},{b:g},{a:g}"
+
+
+def _kernClassesToUFO(subtables, prefix="public"):
+    groups = {}
+    kerning = {}
+
+    for i, (groups1, groups2, kerns) in enumerate(subtables):
+        for j, group1 in enumerate(groups1):
+            for k, group2 in enumerate(groups2):
+                kern = kerns[(j * len(groups2)) + k]
+                if group1 is not None and group2 is not None and kern != 0:
+                    name1 = f"{prefix}.kern1.kc{i}_{k}"
+                    name2 = f"{prefix}.kern2.kc{i}_{k}"
+                    if name1 not in groups:
+                        groups[name1] = group1
+                    if name2 not in groups:
+                        groups[name2] = group2
+                    assert groups[name1] == group1
+                    assert groups[name2] == group2
+                    kerning[name1, name2] = kern
+
+    return groups, kerning
+
+
+def _processKernClasses(font, subtables):
+    groups, kerning = _kernClassesToUFO(subtables)
+    valid, _ = groupsValidator(groups)
+    if not valid:
+        # If groupsValidator() thinks these groups are invalid, ufoLib will
+        # refuse to save the files. Most likely the cause is glyphs
+        # appearing in several kerning groups. Since UFO kerning is too
+        # dumb to represent this, lets cheat on ufoLib and use our private
+        # prefix for group names which would prevent it from attempting to
+        # “validate” them.
+        groups, kerning = kernClassesToUFO(subtables, SFDLIB_PREFIX)
+
+    font.groups.update(groups)
+    font.kerning.update(kerning)
 
 
 class SFDParser:
@@ -106,6 +188,19 @@ class SFDParser:
         self._ligatureCarets = {}
 
         self._sanitizedLookupNames = {}
+
+    def _parseAltuni(self, name, altuni):
+        unicodes = []
+        for uni, uvs, _ in altuni:
+            if not self._ignore_uvs:
+                assert uvs in (-1, 0xFFFFFFFF), (
+                    "Glyph %s uses variation selector "
+                    "U+%04X, UFO doesn’t support this!" % (name, uvs)
+                )
+            if uvs in (-1, 0xFFFFFFFF):
+                unicodes.append(uni)
+
+        return unicodes
 
     def _parsePrivateDict(self, data):
         info = self._font.info
@@ -444,7 +539,13 @@ class SFDParser:
         index = int(index)
 
         if self._use_ufo_anchors:
-            glyph.appendAnchor(parseAnchorPoint([name, kind, x, y, index]))
+            if kind == "mark":
+                name = f"_{name}"
+            elif kind == "ligature":
+                name = f"{name}_{index}"
+            elif kind in ["entry", "exit"]:
+                name = f"{name}_{kind}"
+            glyph.appendAnchor(dict(name=name, x=x, y=y))
         else:
             if glyph.name not in self._glyphAnchors:
                 self._glyphAnchors[glyph.name] = {}
@@ -526,7 +627,7 @@ class SFDParser:
             elif key == "AltUni2":
                 altuni = [int(v, 16) for v in value.split(".")]
                 altuni = _splitList(altuni, 3)
-                unicodes += parseAltuni(name, altuni, self._ignore_uvs)
+                unicodes += self._parseAltuni(name, altuni)
             elif key == "GlyphClass":
                 glyph.lib[CATEGORIES_KEY] = self._CATEGORIES[int(value)]
             elif key == "UnlinkRmOvrlpSave":
@@ -602,7 +703,7 @@ class SFDParser:
                 if key == "Comment":
                     glyph.note = SFDReadUTF7(value)
                 elif key == "Colour":
-                    glyph.markColor = parseColor(int(value, 16))
+                    glyph.markColor = _parseColor(int(value, 16))
 
         #   elif value is not None:
         #      print(key, value)
@@ -653,7 +754,7 @@ class SFDParser:
         self._glyphOrder = font.glyphOrder = sorted(
             glyphOrderMap, key=glyphOrderMap.get
         )
-        font.glyphOrder = sortGlyphs(font)
+        font.glyphOrder = _sortGlyphs(font)
 
     _LOOKUP_TYPES = {
         0x001: "gsub_single",
@@ -717,7 +818,8 @@ class SFDParser:
         if not metrics:
             return
         info = self._font.info
-        bounds = getFontBounds(self._font.bounds)
+        bbox = [int(round(v)) for v in self._font.bounds]
+        bounds = dict(xMin=bbox[0], yMin=bbox[1], xMax=bbox[2], yMax=bbox[3])
         for metric in metrics:
             value = getattr(info, metric)
 
@@ -1155,7 +1257,7 @@ class SFDParser:
                 # Decode escape sequences.
                 info.copyright = codecs.escape_decode(value)[0].decode("utf-8")
             elif key == "Version":
-                info.versionMajor, info.versionMinor = parseVersion(value)
+                info.versionMajor, info.versionMinor = _parseVersion(value)
             elif key == "ItalicAngle":
                 info.italicAngle = info.postscriptSlantAngle = float(value)
             elif key == "UnderlinePosition":
@@ -1385,7 +1487,7 @@ class SFDParser:
                     if subtable in self._kernClasses:
                         subtables.append(self._kernClasses[subtable])
             if subtables:
-                processKernClasses(self._font, subtables)
+                _processKernClasses(self._font, subtables)
 
         # Need to run after parsing glyphs so that we can calculate font
         # bounding box.
