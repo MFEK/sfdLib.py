@@ -1151,6 +1151,8 @@ class SFDParser:
             lines.append(f"@{name} = [{glyphs}];")
 
         for lookup in lookups:
+            kind, flag, _ = self._lookupInfo[lookup]
+
             body = []
             for i, subtable in enumerate(lookups[lookup]):
                 if subtable in self._anchorClasses:
@@ -1188,8 +1190,6 @@ class SFDParser:
                                 assert False, (kind, possub)
             if not body:
                 continue
-
-            kind, flag, _ = self._lookupInfo[lookup]
 
             flags = []
             for i, name in sorted(self._LOOKUP_FLAGS.items()):
