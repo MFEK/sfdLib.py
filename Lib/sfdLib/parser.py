@@ -585,7 +585,8 @@ class SFDParser:
         if name.startswith('"'):
             name = SFDReadUTF7(name)
 
-        glyph = self._font.newGlyph(name)
+        font = self._font
+        glyph = font.newGlyph(name)
         layerIdx = None
         unicodes = []
 
@@ -613,7 +614,7 @@ class SFDParser:
                 altuni = _splitList(altuni, 3)
                 unicodes += self._parseAltuni(name, altuni)
             elif key == "GlyphClass":
-                glyph.lib[CATEGORIES_KEY] = self._CATEGORIES[int(value)]
+                font.lib[CATEGORIES_KEY][name] = self._CATEGORIES[int(value)]
             elif key == "UnlinkRmOvrlpSave":
                 glyph.lib[DECOMPOSEREMOVEOVERLAP_KEY] = bool(int(value))
             elif key == "AnchorPoint":
@@ -761,6 +762,8 @@ class SFDParser:
         font = self._font
         glyphOrderMap = {}
 
+        font.lib[CATEGORIES_KEY] = {}
+
         data = [l.strip() for l in data if l.strip()]
 
         i = 0
@@ -866,14 +869,10 @@ class SFDParser:
 
     def _writeGDEF(self):
         font = self._font
-        categories = {}
-        categories["base"] = set()
-        categories["ligature"] = set()
-        categories["mark"] = set()
-        categories["component"] = set()
+        categories = font.lib[CATEGORIES_KEY]
         for name in font.glyphOrder:
             glyph = font[name]
-            category = glyph.lib.get(CATEGORIES_KEY)
+            category = categories.get(name)
             if category == "unassigned":
                 continue
             if category is None:
@@ -886,19 +885,20 @@ class SFDParser:
                             if kind == "Ligature":
                                 category = "ligature"
                                 break
-            categories[category].add(name)
-
-        for key, value in categories.items():
-            categories[key] = " ".join(sorted(value))
+                categories[name] = category
 
         lines = []
+        for category in {"base", "mark", "ligature", "component"}:
+            glyphs = {k for k, v in categories.items() if k == category}
+            lines.append(f"@GDEF_{category} = [{' '.join(sorted(glyphs))}];")
+
         lines.append(
-            f"""
-            table GDEF {{
-            GlyphClassDef [{categories['base']}],
-                          [{categories['ligature']}],
-                          [{categories['mark']}],
-                          [{categories['component']}];"""
+            """
+            table GDEF {
+            GlyphClassDef @GDEF_base,
+                          @GDEF_ligature,
+                          @GDEF_mark,
+                          @GDEF_component;"""
         )
 
         for k, v in self._ligatureCarets.items():
