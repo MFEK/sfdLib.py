@@ -850,9 +850,9 @@ class SFDParser:
             value = getattr(info, metric)
 
             if metric == "openTypeOS2TypoAscender":
-                value = self._font.ascender + value
+                value = info.ascender + value
             elif metric == "openTypeOS2TypoDescender":
-                value = self._font.descender + value
+                value = info.descender + value
             elif metric == "openTypeOS2WinAscent":
                 value = bounds["yMax"] + value
             elif metric == "openTypeOS2WinDescent":
