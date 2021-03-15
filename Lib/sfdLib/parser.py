@@ -652,9 +652,13 @@ class SFDParser:
             elif key == "LCarets2":
                 v = [int(v) for v in value.split(" ")]
                 num = v.pop(0)
+                assert len(v) == num
                 if any(v):
-                    assert len(v) == num
                     self._ligatureCarets[glyph.name] = v
+                    if self._use_ufo_anchors:
+                        for idx, x in enumerate(v):
+                            anchor = dict(name=f"caret_{idx+1}", x=x, y=0)
+                            glyph.appendAnchor(anchor)
             elif key in (
                 "Position2",
                 "PairPos2",
