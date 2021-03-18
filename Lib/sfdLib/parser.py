@@ -893,7 +893,7 @@ class SFDParser:
 
         lines = []
         for category in ["base", "mark", "ligature", "component"]:
-            glyphs = {k for k, v in categories.items() if k == category}
+            glyphs = {k for k, v in categories.items() if v == category}
             lines.append(f"@GDEF_{category} = [{' '.join(sorted(glyphs))}];")
 
         lines.append(
