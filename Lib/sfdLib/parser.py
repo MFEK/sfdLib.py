@@ -50,6 +50,7 @@ DECOMPOSEREMOVEOVERLAP_KEY = SFDLIB_PREFIX + ".decomposeAndRemoveOverlap"
 MATH_KEY = SFDLIB_PREFIX + ".MATH"
 
 CATEGORIES_KEY = "public.openTypeCategories"
+UVS_KEY = "public.unicodeVariationSequences"
 
 
 def _splitList(data, n):
@@ -141,14 +142,12 @@ class SFDParser:
         self,
         path,
         font,
-        ignore_uvs=False,
         ufo_anchors=False,
         ufo_kerning=False,
         minimal=False,
     ):
         self._path = path
         self._font = font
-        self._ignore_uvs = ignore_uvs
         self._use_ufo_anchors = ufo_anchors
         self._use_ufo_kerning = ufo_kerning
         self._minimal = minimal
@@ -175,14 +174,14 @@ class SFDParser:
 
     def _parseAltuni(self, name, altuni):
         unicodes = []
+        lib = self._font.lib
         for uni, uvs, _ in altuni:
-            if not self._ignore_uvs:
-                assert uvs in (-1, 0xFFFFFFFF), (
-                    f"Glyph {name} uses variation selector "
-                    f"U+{uvs:04X}, UFO doesn’t support this!"
-                )
             if uvs in (-1, 0xFFFFFFFF):
                 unicodes.append(uni)
+            else:
+                uvs = f"{uvs:04X}"
+                uni = f"{uni:04X}"
+                lib.setdefault(UVS_KEY, {}).setdefault(uvs, {})[uni] = name
 
         return unicodes
 
