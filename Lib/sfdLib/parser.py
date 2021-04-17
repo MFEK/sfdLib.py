@@ -1153,6 +1153,8 @@ class SFDParser:
         for name, glyphs in self._markAttachSets + self._markAttachClasses:
             lines.append(f"@{name} = [{glyphs}];")
 
+        skip = set()
+
         for lookup in lookups:
             kind, flag, _ = self._lookupInfo[lookup]
 
@@ -1192,6 +1194,7 @@ class SFDParser:
                             else:
                                 assert False, (kind, possub)
             if not body:
+                skip.add(self._santizeLookupName(lookup))
                 continue
 
             flags = []
@@ -1221,6 +1224,15 @@ class SFDParser:
             lines.append(f"}} {self._santizeLookupName(lookup)};")
 
         for feature in features:
+            alllookups = set()
+            for script in features[feature]:
+                for language in features[feature][script]:
+                    for lookup in features[feature][script][language]:
+                        if lookup not in skip:
+                            alllookups.add(lookup)
+            if not alllookups:
+                continue
+
             lines.append(f"feature {feature} {{")
             for script in features[feature]:
                 lines.append(f" script {script};")
@@ -1228,6 +1240,8 @@ class SFDParser:
                     excludedflt = language != "dflt" and "exclude_dflt" or ""
                     lines.append(f"     language {language} {excludedflt};")
                     for lookup in features[feature][script][language]:
+                        if lookup in skip:
+                            continue
                         lines.append(f"      lookup {lookup};")
             lines.append(f"}} {feature};")
 
