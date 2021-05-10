@@ -12,7 +12,7 @@ from .utils import SFDReadUTF7
 
 QUOTED_RE = re.compile('(".*?")')
 NUMBER_RE = re.compile("(-?\d*\.*\d+)")
-LAYER_RE = re.compile("(.)\s+(.)\s+" + QUOTED_RE.pattern + "\s+(.?)")
+LAYER_RE = re.compile("(.)\s+(.)\s+" + QUOTED_RE.pattern + "(?:\s+.)?")
 GLYPH_SEGMENT_RE = re.compile("(\s[lmc]\s)")
 KERNS_RE = re.compile(
     NUMBER_RE.pattern + "\s+" + NUMBER_RE.pattern + "\s+" + QUOTED_RE.pattern
@@ -1320,7 +1320,7 @@ class SFDParser:
                 self._layerType = int(value) * [None]
             elif key == "Layer":
                 m = LAYER_RE.match(value)
-                idx, quadratic, name, _ = m.groups()
+                idx, quadratic, name = m.groups()
                 idx = int(idx)
                 quadratic = bool(int(quadratic))
                 name = SFDReadUTF7(name)
