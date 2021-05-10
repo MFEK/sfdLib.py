@@ -197,7 +197,7 @@ class SFDParser:
             assert len(value) == int(n)
 
             if value.startswith("[") and value.endswith("]"):
-                value = [float(n) for n in value[1:-1].split(" ")]
+                value = [float(n) for n in value[1:-1].strip().split(" ")]
             else:
                 value = float(value)
 
