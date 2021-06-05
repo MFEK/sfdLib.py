@@ -122,7 +122,7 @@ def _kernClassesToUFO(subtables, prefix="public"):
             for k, group2 in enumerate(groups2):
                 kern = kerns[(j * len(groups2)) + k]
                 if group1 is not None and group2 is not None and kern != 0:
-                    name1 = f"{prefix}.kern1.kc{i}_{k}"
+                    name1 = f"{prefix}.kern1.kc{i}_{j}"
                     name2 = f"{prefix}.kern2.kc{i}_{k}"
                     if name1 not in groups:
                         groups[name1] = group1
@@ -741,7 +741,7 @@ class SFDParser:
             # dumb to represent this, lets cheat on ufoLib and use our private
             # prefix for group names which would prevent it from attempting to
             # “validate” them.
-            groups, kerning = kernClassesToUFO(subtables, SFDLIB_PREFIX)
+            groups, kerning = _kernClassesToUFO(subtables, SFDLIB_PREFIX)
 
         self._font.groups.update(groups)
         self._font.kerning.update(kerning)
