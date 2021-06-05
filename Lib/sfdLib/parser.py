@@ -5,7 +5,6 @@ import re
 
 from datetime import datetime
 from fontTools.misc.fixedTools import otRound
-from fontTools.ufoLib.validators import groupsValidator
 
 from .utils import SFDReadUTF7
 
@@ -113,7 +112,7 @@ def _parseColor(color):
     return f"{r:g},{g:g},{b:g},{a:g}"
 
 
-def _kernClassesToUFO(subtables, prefix="public"):
+def _kernClassesToUFO(subtables):
     groups = {}
     kerning = {}
 
@@ -122,8 +121,8 @@ def _kernClassesToUFO(subtables, prefix="public"):
             for k, group2 in enumerate(groups2):
                 kern = kerns[(j * len(groups2)) + k]
                 if group1 is not None and group2 is not None and kern != 0:
-                    name1 = f"{prefix}.kern1.kc{i}_{j}"
-                    name2 = f"{prefix}.kern2.kc{i}_{k}"
+                    name1 = f"public.kern1.kc{i}_{j}"
+                    name2 = f"public.kern2.kc{i}_{k}"
                     if name1 not in groups:
                         groups[name1] = group1
                     if name2 not in groups:
@@ -722,27 +721,13 @@ class SFDParser:
                     name2 = self._font.glyphOrder[gid2]
                     self._font.kerning[name1, name2] = kern
 
-        # We process all kern classes together so we can detect UFO group
-        # overlap issue and act accordingly.
         subtables = []
         for lookup in self._gposLookups:
             for subtable in self._gposLookups[lookup]:
                 if subtable in self._kernClasses:
                     subtables.append(self._kernClasses[subtable])
-        if not subtables:
-            return
 
         groups, kerning = _kernClassesToUFO(subtables)
-        valid, _ = groupsValidator(groups)
-        if not valid:
-            # If groupsValidator() thinks these groups are invalid, ufoLib will
-            # refuse to save the files. Most likely the cause is glyphs
-            # appearing in several kerning groups. Since UFO kerning is too
-            # dumb to represent this, lets cheat on ufoLib and use our private
-            # prefix for group names which would prevent it from attempting to
-            # “validate” them.
-            groups, kerning = _kernClassesToUFO(subtables, SFDLIB_PREFIX)
-
         self._font.groups.update(groups)
         self._font.kerning.update(kerning)
 
@@ -1049,7 +1034,6 @@ class SFDParser:
         lines = []
         groups1, groups2, kerns = self._kernClasses[subtable]
         i = list(self._kernClasses.keys()).index(subtable)
-        classes = {}
         for j, group in enumerate(groups1):
             if group:
                 glyphs = " ".join(group)
