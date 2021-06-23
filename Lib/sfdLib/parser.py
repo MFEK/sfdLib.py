@@ -39,10 +39,13 @@ LOOKUP_RE = re.compile(
 TAG_RE = re.compile("'(.{,4})'")
 FEATURE_RE = re.compile(TAG_RE.pattern + "\s+" + "\((.*.)\)")
 LANGSYS_RE = re.compile(TAG_RE.pattern + "\s+" + "<(.*?)>" + "\s+")
-SUBPOS_RE = re.compile(QUOTED_RE.pattern + "\s+(.*.)")
+POSSUB_RE = re.compile(QUOTED_RE.pattern + "\s+(.*.)")
 MARKCLASS_RE = re.compile(
     QUOTED_RE.pattern + "\s+" + NUMBER_RE.pattern + "\s+" + "(.*?)$"
 )
+
+CHAIN_POSSUB_RE = re.compile("(coverage|class|glyph)\s+" + QUOTED_RE.pattern + "\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)")
+CHAIN_COVERAGE_RE = re.compile("")
 
 SFDLIB_PREFIX = "org.sfdlib"
 DECOMPOSEREMOVEOVERLAP_KEY = SFDLIB_PREFIX + ".decomposeAndRemoveOverlap"
@@ -159,6 +162,7 @@ class SFDParser:
         self._glyphPosSub = {}
         self._glyphOrder = {}
 
+        self._chainPosSub = {}
         self._anchorClasses = {}
         self._markAttachClasses = []
         self._markAttachSets = []
@@ -536,7 +540,7 @@ class SFDParser:
             self._glyphAnchors[glyph.name][name][kind] = (x, y, index)
 
     def _parsePosSub(self, glyph, key, data):
-        m = SUBPOS_RE.match(data)
+        m = POSSUB_RE.match(data)
         assert m
 
         key = key[:-1]
@@ -566,6 +570,39 @@ class SFDParser:
             self._glyphPosSub[glyph.name][subtable].append((key, possub))
         else:
             assert False, (key, possub)
+
+    def _parseChainPosSub(self, key, data):
+        possub = [l.strip() for l in data]
+        m = CHAIN_POSSUB_RE.match(possub[0])
+        assert m
+        kind, subtable, _, _, _, nRules = m.groups()
+        nRules = int(nRules)
+        subtable = SFDReadUTF7(subtable)
+
+        if key == "ContextPos2" and kind == "coverage":
+            assert nRules == 1
+            match = []
+            back = []
+            ahead = []
+            lookups = {}
+            for line in possub[1:]:
+                if ":" not in line:
+                    continue
+                key, value = line.split(": ", 1)
+                if key.endswith("Coverage"):
+                    value = value.strip().split(" ")
+                if key == "Coverage":
+                    match.append(value[1:])
+                elif key == "BCoverage":
+                    back.append(value[1:])
+                elif key == "FCoverage":
+                    ahead.append(value[1:])
+                elif key == "SeqLookup":
+                    index, lookup = value.strip().split(" ", 1)
+                    lookups.setdefault(int(index), []).append(SFDReadUTF7(lookup))
+            self._chainPosSub[subtable] = ("pos", match, back, ahead, lookups)
+        else:
+            assert False, (key, kind, subtable)
 
     _LAYER_KEYWORDS = ["Back", "Fore", "Layer"]
 
@@ -973,6 +1010,8 @@ class SFDParser:
         for sub in subtables:
             if any(sub in self._glyphPosSub[g] for g in self._glyphPosSub):
                 out.append(sub)
+            elif sub in self._chainPosSub:
+                out.append(sub)
             elif sub in self._anchorClasses:
                 out.append(sub)
             elif not self._use_ufo_kerning:
@@ -1058,6 +1097,22 @@ class SFDParser:
             for gid2, kern in self._kernPairs[subtable][name1]:
                 name2 = self._font.glyphOrder[gid2]
                 lines.append(f"    pos {name1} {name2} {kern};")
+        return lines
+
+    def _writeChainPosSub(self, subtable):
+        kind, match, back, ahead, lookups = self._chainPosSub[subtable]
+        lines = []
+        lines.append(kind)
+        for glyphs in back:
+            lines.append(f"[{' '.join(glyphs)}]")
+        for i, glyphs in enumerate(match):
+            lines.append(f"[{' '.join(glyphs)}]'")
+            if i in lookups:
+                for lookup in lookups[i]:
+                    lines[-1] += " lookup " + self._santizeLookupName(lookup, kind == "pos")
+        for glyphs in ahead:
+            lines.append(f"[{' '.join(glyphs)}]")
+        lines.append(";")
         return lines
 
     _LOOKUP_FLAGS = {
@@ -1152,6 +1207,9 @@ class SFDParser:
                     continue
                 if subtable in self._kernPairs:
                     body += self._writeKernPairs(subtable)
+                    continue
+                if subtable in self._chainPosSub:
+                    body += self._writeChainPosSub(subtable)
                     continue
                 for glyph in self._glyphPosSub:
                     if subtable in self._glyphPosSub[glyph]:
@@ -1421,6 +1479,9 @@ class SFDParser:
                 charData, i = self._getSection(data, i, "EndChars")
             elif key == "KernClass2":
                 i = self._parseKernClass(data, i, value)
+            elif key in ("ContextPos2", "ContextSub2", "ChainPos2", "ChainSub2", "ReverseChain2"):
+                section, i = self._getSection(data, i, "EndFPST", value)
+                self._parseChainPosSub(key, section)
             elif key == "Lookup":
                 self._parseLookup(value)
             elif key == "AnchorClass2":
