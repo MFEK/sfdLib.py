@@ -872,8 +872,7 @@ class SFDParser:
         if not metrics:
             return
         info = self._font.info
-        bbox = [int(round(v)) for v in self._font.bounds]
-        bounds = dict(xMin=bbox[0], yMin=bbox[1], xMax=bbox[2], yMax=bbox[3])
+        bounds = self._font.controlPointBounds
         for metric in metrics:
             value = getattr(info, metric)
 
@@ -882,15 +881,15 @@ class SFDParser:
             elif metric == "openTypeOS2TypoDescender":
                 value = info.descender + value
             elif metric == "openTypeOS2WinAscent":
-                value = bounds["yMax"] + value
+                value = bounds.yMax + value
             elif metric == "openTypeOS2WinDescent":
-                value = max(-bounds["yMin"] + value, 0)
+                value = max(-bounds.yMin + value, 0)
             elif metric == "openTypeHheaAscender":
-                value = bounds["yMax"] + value
+                value = bounds.yMax + value
             elif metric == "openTypeHheaDescender":
-                value = bounds["yMin"] + value
+                value = bounds.yMin + value
 
-            setattr(info, metric, value)
+            setattr(info, metric, int(round(value)))
 
     def _writeGDEF(self):
         font = self._font
