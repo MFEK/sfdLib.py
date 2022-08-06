@@ -571,7 +571,12 @@ class SFDParser:
         else:
             assert False, (key, possub)
 
-    def _parseChainPosSub(self, key, data):
+    _CHAIN_POSSUB_KINDS = {
+        "ContextPos2": "pos",
+        "ChainSub2": "sub"
+    }
+
+    def _parseChainPosSub(self, lkey, data):
         possub = [l.strip() for l in data]
         m = CHAIN_POSSUB_RE.match(possub[0])
         assert m
@@ -579,7 +584,7 @@ class SFDParser:
         nRules = int(nRules)
         subtable = SFDReadUTF7(subtable)
 
-        if key == "ContextPos2" and kind == "coverage":
+        if kind == "coverage" and lkey in self._CHAIN_POSSUB_KINDS:
             assert nRules == 1
             match = []
             back = []
@@ -600,9 +605,9 @@ class SFDParser:
                 elif key == "SeqLookup":
                     index, lookup = value.strip().split(" ", 1)
                     lookups.setdefault(int(index), []).append(SFDReadUTF7(lookup))
-            self._chainPosSub[subtable] = ("pos", match, back, ahead, lookups)
+            self._chainPosSub[subtable] = (self._CHAIN_POSSUB_KINDS[lkey], match, back, ahead, lookups)
         else:
-            assert False, (key, kind, subtable)
+            assert False, (lkey, kind, subtable)
 
     _LAYER_KEYWORDS = ["Back", "Fore", "Layer"]
 
