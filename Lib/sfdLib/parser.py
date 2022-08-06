@@ -44,7 +44,9 @@ MARKCLASS_RE = re.compile(
     QUOTED_RE.pattern + "\s+" + NUMBER_RE.pattern + "\s+" + "(.*?)$"
 )
 
-CHAIN_POSSUB_RE = re.compile("(coverage|class|glyph)\s+" + QUOTED_RE.pattern + "\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)")
+CHAIN_POSSUB_RE = re.compile(
+    "(coverage|class|glyph)\s+" + QUOTED_RE.pattern + "\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)"
+)
 CHAIN_COVERAGE_RE = re.compile("")
 
 SFDLIB_PREFIX = "org.sfdlib"
@@ -571,7 +573,9 @@ class SFDParser:
         else:
             assert False, (key, possub)
 
-    def _parseChainPosSub(self, key, data):
+    _CHAIN_POSSUB_KINDS = {"ContextPos2": "pos", "ChainSub2": "sub"}
+
+    def _parseChainPosSub(self, lkey, data):
         possub = [l.strip() for l in data]
         m = CHAIN_POSSUB_RE.match(possub[0])
         assert m
@@ -579,7 +583,7 @@ class SFDParser:
         nRules = int(nRules)
         subtable = SFDReadUTF7(subtable)
 
-        if key == "ContextPos2" and kind == "coverage":
+        if kind == "coverage" and lkey in self._CHAIN_POSSUB_KINDS:
             assert nRules == 1
             match = []
             back = []
@@ -600,9 +604,15 @@ class SFDParser:
                 elif key == "SeqLookup":
                     index, lookup = value.strip().split(" ", 1)
                     lookups.setdefault(int(index), []).append(SFDReadUTF7(lookup))
-            self._chainPosSub[subtable] = ("pos", match, back, ahead, lookups)
+            self._chainPosSub[subtable] = (
+                self._CHAIN_POSSUB_KINDS[lkey],
+                match,
+                back,
+                ahead,
+                lookups,
+            )
         else:
-            assert False, (key, kind, subtable)
+            assert False, (lkey, kind, subtable)
 
     _LAYER_KEYWORDS = ["Back", "Fore", "Layer"]
 
@@ -1108,7 +1118,9 @@ class SFDParser:
             lines.append(f"[{' '.join(glyphs)}]'")
             if i in lookups:
                 for lookup in lookups[i]:
-                    lines[-1] += " lookup " + self._santizeLookupName(lookup, kind == "pos")
+                    lines[-1] += " lookup " + self._santizeLookupName(
+                        lookup, kind == "pos"
+                    )
         for glyphs in ahead:
             lines.append(f"[{' '.join(glyphs)}]")
         lines.append(";")
@@ -1478,7 +1490,13 @@ class SFDParser:
                 charData, i = self._getSection(data, i, "EndChars")
             elif key == "KernClass2":
                 i = self._parseKernClass(data, i, value)
-            elif key in ("ContextPos2", "ContextSub2", "ChainPos2", "ChainSub2", "ReverseChain2"):
+            elif key in (
+                "ContextPos2",
+                "ContextSub2",
+                "ChainPos2",
+                "ChainSub2",
+                "ReverseChain2",
+            ):
                 section, i = self._getSection(data, i, "EndFPST", value)
                 self._parseChainPosSub(key, section)
             elif key == "Lookup":
