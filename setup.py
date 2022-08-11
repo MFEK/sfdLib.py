@@ -4,9 +4,9 @@ setup(
     name = "sfdLib",
     version = "1.2.5",
     description = "A simple, quick and dirty, SFD to UFO converter.",
-    author = "Khaled Hosny",
-    author_email = "khaledhosny@eglug.org",
-        url = "https://github.com/khaledhosny/sfdLib",
+    author = "Maintained by MFEK (Fredrick Brennan), originally by Khaled Hosny",
+    author_email = "copypaste@kittens.ph",
+    url = "https://github.com/MFEK/sfdLib.py",
     license = "OpenSource, BSD-style",
     platforms = ["Any"],
 
