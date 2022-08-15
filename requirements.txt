@@ -1,3 +1,0 @@
-ufoLib2>=0.6.2
-fonttools>=4.0.0
-sfdutf7>=0.1.0
