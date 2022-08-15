@@ -1,10 +1,28 @@
 `sfd2ufo` — An SFD to UFO converter
 ===================================
 
+[![PyPI version](https://badge.fury.io/py/sfdLib.svg)](https://badge.fury.io/py/sfdLib)
+
 A simple utility to convert FontForge’s SFD fonts to UFO fonts. The main
 objective is to create UFO files that are usable in a larger UFO based
 workflow, and for that existing UFO libraries are used to generate the UFO
 fonts.
+
+## Installation
+
+```bash
+pip install -U sfdLib # add --user for local install
+```
+
+Or:
+
+```bash
+git checkout https://github.com/MFEK/sfdLib.py.git
+cd ./sfdLib.py/
+virtualenv venv
+. venv/bin/activate
+pip install -e .
+```
 
 ## License
 
