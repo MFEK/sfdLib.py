@@ -5,8 +5,11 @@ import re
 
 from datetime import datetime
 from fontTools.misc.fixedTools import otRound
+import sfdutf7
 
-from .utils import SFDReadUTF7
+SFDReadUTF7 = lambda s, force_valid_xml=True: sfdutf7.decode(
+    s.encode("ascii"), unquote=True, force_valid_xml=force_valid_xml
+)
 
 
 QUOTED_RE = re.compile('(".*?")')
