@@ -5,6 +5,7 @@ import re
 
 from datetime import datetime
 from fontTools.misc.fixedTools import otRound
+from lxml.etree import CDATA
 import sfdutf7
 
 SFDReadUTF7 = lambda s, force_valid_xml=True: sfdutf7.decode(
@@ -738,7 +739,7 @@ class SFDParser:
                 pass  # XXX
             elif not self._minimal:
                 if key == "Comment":
-                    glyph.note = SFDReadUTF7(value)
+                    glyph.note = CDATA(SFDReadUTF7(value))
                 elif key == "Colour":
                     glyph.markColor = _parseColor(int(value, 16))
 
